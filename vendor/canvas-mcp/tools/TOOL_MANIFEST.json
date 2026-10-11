@@ -1,0 +1,4584 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "canvas-mcp",
+  "version": "1.14.0",
+  "description": "MCP server for Canvas Learning Management System API",
+  "categories": [
+    {
+      "id": "student",
+      "name": "Student Tools",
+      "description": "Personal academic tracking using Canvas 'self' endpoints"
+    },
+    {
+      "id": "educator",
+      "name": "Educator Tools",
+      "description": "Course management, grading, and analytics for instructors/TAs"
+    },
+    {
+      "id": "shared",
+      "name": "Shared Tools",
+      "description": "Content access tools for both students and educators"
+    },
+    {
+      "id": "developer",
+      "name": "Developer Tools",
+      "description": "Bulk operations, code execution, and tool discovery"
+    },
+    {
+      "id": "student_write",
+      "name": "Student Write Tools",
+      "description": "Tools that act on Canvas for the student. Off by default: enabled per-tool by the operator via STUDENT_WRITE_TOOLS, and further restrictable per course by an instructor."
+    }
+  ],
+  "tools": [
+    {
+      "name": "get_my_profile",
+      "category": "shared",
+      "description": "Get your own Canvas identity (user ID, name, login ID)",
+      "parameters": [],
+      "returns": "Your Canvas user ID, name, and login ID (email and SIS ID deliberately omitted)",
+      "examples": [
+        "Who am I in Canvas?",
+        "What's my Canvas user ID?"
+      ]
+    },
+    {
+      "name": "get_my_enrollments",
+      "category": "shared",
+      "description": "List the courses you are enrolled in, with your role in each. Needs no roster permission",
+      "parameters": [
+        {
+          "name": "include_concluded",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Also include concluded/completed courses"
+        }
+      ],
+      "returns": "Course code, name, ID, and all of your roles per course",
+      "examples": [
+        "What courses am I in?",
+        "Am I a student or a TA in BADM 350?"
+      ]
+    },
+    {
+      "name": "get_my_upcoming_assignments",
+      "category": "student",
+      "description": "Get your upcoming assignments across all courses",
+      "parameters": [
+        {
+          "name": "days",
+          "type": "integer",
+          "required": false,
+          "default": 7,
+          "description": "Number of days to look ahead"
+        }
+      ],
+      "returns": "List of assignments due within timeframe, sorted by due date",
+      "examples": [
+        "What assignments do I have due this week?",
+        "Show me what's due in the next 3 days"
+      ]
+    },
+    {
+      "name": "get_my_todo_items",
+      "category": "student",
+      "description": "Get your Canvas TODO list",
+      "parameters": [],
+      "returns": "All items requiring attention with due dates and course info",
+      "examples": [
+        "Show me my Canvas TODO list",
+        "What do I need to do?"
+      ]
+    },
+    {
+      "name": "get_my_submission_status",
+      "category": "student",
+      "description": "Check your submission status across assignments",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": false,
+          "description": "Course code or ID to filter (optional)"
+        }
+      ],
+      "returns": "Submitted and missing assignments, with overdue items flagged",
+      "examples": [
+        "Have I submitted everything?",
+        "Show me my submission status for BADM 350"
+      ]
+    },
+    {
+      "name": "get_my_course_grades",
+      "category": "student",
+      "description": "View your current grades across all enrolled courses",
+      "parameters": [],
+      "returns": "Current grade and percentage for each course",
+      "examples": [
+        "What are my current grades?",
+        "Show me how I'm doing in all my courses"
+      ]
+    },
+    {
+      "name": "get_my_assignment_scores",
+      "category": "student",
+      "description": "List your score and status on every assignment in a course, grouped by assignment group with weights and drop rules",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        }
+      ],
+      "returns": "Per assignment group: weight (if weighted) and drop rules; per assignment: score / points possible, status (graded, missing, late, excused, unsubmitted, pending review, grade not posted, not counted toward final grade), and due date",
+      "examples": [
+        "Show my scores in CS 161",
+        "Which assignments am I missing in course 12345?"
+      ]
+    },
+    {
+      "name": "calculate_grade_scenarios",
+      "category": "student",
+      "description": "Recompute your course grade the way Canvas does, compare it with Canvas's own score, apply what-if scores, and find the percentage needed on remaining work to reach a target",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "hypothetical_scores",
+          "type": "object",
+          "required": false,
+          "description": "What-if points by assignment ID, e.g. {\"12345\": 18}"
+        },
+        {
+          "name": "target_percent",
+          "type": "number",
+          "required": false,
+          "description": "Target course percentage (0-200); not with target_letter"
+        },
+        {
+          "name": "target_letter",
+          "type": "string",
+          "required": false,
+          "description": "Target letter grade from the scheme in use, e.g. \"A-\"; not with target_percent"
+        }
+      ],
+      "returns": "Computed current and final grade with letters next to Canvas's reported scores (disagreement flagged), per-group breakdown with dropped assignments, what-if results, uniform percent needed on remaining ungraded assignments, the letter scheme used and its source, and caveats",
+      "examples": [
+        "What's my grade in Math 2B if I get 18/20 on the next quiz?",
+        "What do I need on the rest of the assignments to get an A- in CS 161?"
+      ]
+    },
+    {
+      "name": "get_my_peer_reviews_todo",
+      "category": "student",
+      "description": "List peer reviews you need to complete",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": false,
+          "description": "Course code or ID to filter (optional; required if assignment_identifier is given)"
+        },
+        {
+          "name": "assignment_identifier",
+          "type": "string | integer",
+          "required": false,
+          "description": "Check a specific assignment directly, bypassing the per-course discovery scan"
+        }
+      ],
+      "returns": "Incomplete peer reviews with assignment and course info, labeled with discovery source (assignment scan or Planner feed)",
+      "examples": [
+        "What peer reviews do I need to complete?",
+        "Show me my pending peer reviews",
+        "Do I have a peer review to do for assignment 4821 in ENGL 101?"
+      ]
+    },
+    {
+      "name": "list_quizzes",
+      "category": "student",
+      "description": "List Classic quizzes and New Quizzes in one of your courses (read-only; never opens a quiz or reads questions)",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        }
+      ],
+      "returns": "Classic quizzes (quiz ID, type, due/open/close dates, time limit, allowed attempts, points, published, lock state) and New Quizzes found among assignments (assignment ID, dates, points), each with your submission state",
+      "examples": [
+        "What quizzes do I have in CS 161?",
+        "When is my next quiz due?"
+      ]
+    },
+    {
+      "name": "get_quiz_details",
+      "category": "student",
+      "description": "Get one quiz's settings and your own attempts (used, remaining, kept score); read-only",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "quiz_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Classic quiz ID (pass exactly one of quiz_id or assignment_id)"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Assignment ID of a New Quiz, or of a graded Classic quiz"
+        }
+      ],
+      "returns": "Classic quiz metadata plus your attempts used/remaining, kept score, in-progress attempt and latest-attempt score (earlier history is unavailable because its GET endpoint triggers grading); for New Quizzes, the Canvas assignment record and your gradebook submission, with a note that New Quizzes settings and attempt history are not available to students via the REST API",
+      "examples": [
+        "How many attempts do I have left on Quiz 3?",
+        "What was my kept score on the midterm practice quiz?"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "list_assignments",
+      "category": "educator",
+      "description": "List all assignments for a course",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "raw_dates",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Append a JSON block with each assignment's due_at, unlock_at, lock_at, updated_at, all_dates and checkpoint dates exactly as Canvas returns them (null stays null). Adds include[]=checkpoints. Metadata only: no submission, grade or user fields."
+        }
+      ],
+      "returns": "List of assignments with IDs, names, due dates, points; with raw_dates, also a JSON dates block",
+      "examples": [
+        "Show me all assignments in BADM 350",
+        "List assignments for course 12345"
+      ]
+    },
+    {
+      "name": "get_assignment_details",
+      "category": "educator",
+      "description": "Get detailed information about a specific assignment",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Assignment ID"
+        },
+        {
+          "name": "raw_dates",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Append a JSON block with due_at, unlock_at, lock_at, updated_at, all_dates and checkpoint dates exactly as Canvas returns them (null stays null). Adds all_dates=true and include[]=checkpoints."
+        }
+      ],
+      "returns": "Full assignment details including description, due date, submission types; with raw_dates, also a JSON dates block",
+      "examples": [
+        "Show me details for assignment 456 in course 123"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "list_submissions",
+      "category": "educator",
+      "description": "View student submissions for an assignment",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Assignment ID"
+        }
+      ],
+      "returns": "List of submissions with student info, scores, and status",
+      "examples": [
+        "Who has submitted Assignment 2?",
+        "Show me submissions for the latest assignment"
+      ]
+    },
+    {
+      "name": "get_assignment_analytics",
+      "category": "educator",
+      "description": "Get comprehensive performance analytics for an assignment",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Assignment ID"
+        }
+      ],
+      "returns": "Submission stats, grade distribution, completion rates",
+      "examples": [
+        "Show me analytics for Assignment 3",
+        "What's the submission rate for the final project?"
+      ]
+    },
+    {
+      "name": "create_assignment",
+      "category": "educator",
+      "description": "Create a new assignment in a course with configurable due dates, submission types, and peer reviews",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Assignment name/title"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "description": "HTML content for the assignment body"
+        },
+        {
+          "name": "submission_types",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated: online_text_entry, online_url, online_upload, discussion_topic, none, on_paper, external_tool"
+        },
+        {
+          "name": "due_at",
+          "type": "string",
+          "required": false,
+          "description": "Due date in ISO 8601 format"
+        },
+        {
+          "name": "points_possible",
+          "type": "number",
+          "required": false,
+          "description": "Maximum points for the assignment"
+        },
+        {
+          "name": "grading_type",
+          "type": "string",
+          "required": false,
+          "description": "One of: points, letter_grade, pass_fail, percent, not_graded"
+        },
+        {
+          "name": "published",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Whether to publish immediately (default: false for safety)"
+        },
+        {
+          "name": "peer_reviews",
+          "type": "boolean",
+          "required": false,
+          "description": "Enable peer reviews"
+        },
+        {
+          "name": "unlock_at",
+          "type": "string",
+          "required": false,
+          "description": "When assignment becomes available (ISO 8601 format)"
+        },
+        {
+          "name": "lock_at",
+          "type": "string",
+          "required": false,
+          "description": "When assignment locks (ISO 8601 format)"
+        },
+        {
+          "name": "assignment_group_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "ID of assignment group to place this in"
+        },
+        {
+          "name": "automatic_peer_reviews",
+          "type": "boolean",
+          "required": false,
+          "description": "Automatically assign peer reviews when enabled"
+        },
+        {
+          "name": "allowed_extensions",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated file extensions for online_upload (e.g., 'pdf,docx,txt')"
+        }
+      ],
+      "returns": "Created assignment details including ID and URL",
+      "examples": [
+        "Create an assignment called 'Week 1 Discussion' worth 10 points, due Jan 26",
+        "Add a new essay assignment with online_text_entry submission"
+      ]
+    },
+    {
+      "name": "create_content_migration",
+      "category": "educator",
+      "description": "Preview target-course occupancy, then request a full course-copy migration after explicit confirmation.",
+      "parameters": [
+        {
+          "name": "target_course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Target course code or Canvas ID"
+        },
+        {
+          "name": "source_course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Source course code or Canvas ID"
+        },
+        {
+          "name": "old_start_date",
+          "type": "string",
+          "required": false,
+          "description": "Original course start date; provide all four date fields or none"
+        },
+        {
+          "name": "old_end_date",
+          "type": "string",
+          "required": false,
+          "description": "Original course end date; provide all four date fields or none"
+        },
+        {
+          "name": "new_start_date",
+          "type": "string",
+          "required": false,
+          "description": "New course start date; provide all four date fields or none"
+        },
+        {
+          "name": "new_end_date",
+          "type": "string",
+          "required": false,
+          "description": "New course end date; provide all four date fields or none"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Single-use token returned by the preview call; repeat with identical arguments"
+        }
+      ],
+      "returns": "Preview with target occupancy and confirmation token, or a created migration record ID plus the next status action",
+      "examples": [
+        "Preview copying BADM 350 Fall 2025 into Fall 2026",
+        "Confirm the previewed course copy with this confirmation token"
+      ],
+      "notes": "The first call never starts a migration. A migration ID confirms record creation only, not completion. No dry_run or selective_import parameter is exposed."
+    },
+    {
+      "name": "get_content_migration_status",
+      "category": "educator",
+      "description": "Poll one content migration once and review terminal migration issues.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Target course code or Canvas ID"
+        },
+        {
+          "name": "migration_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Numeric content migration ID"
+        }
+      ],
+      "returns": "One progress snapshot with terminal and poll_again flags; terminal results include all readable migration issues",
+      "examples": [
+        "Check migration 300 in course 200",
+        "Poll this course copy again and show any migration issues"
+      ],
+      "notes": "Performs exactly one progress read per invocation. Completed migrations with issues require review; unreadable issues are never replaced by an empty list."
+    },
+    {
+      "name": "get_student_analytics",
+      "category": "educator",
+      "description": "Multi-dimensional student performance analysis",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "student_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Specific student ID (optional, all students if not provided)"
+        }
+      ],
+      "returns": "Assignment completion, grade trends, risk indicators",
+      "examples": [
+        "Show me student performance in BADM 350",
+        "Analyze Student_abc123's progress"
+      ]
+    },
+    {
+      "name": "bulk_grade_submissions",
+      "category": "educator",
+      "description": "Grade multiple submissions efficiently with concurrent processing",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Assignment ID"
+        },
+        {
+          "name": "grades",
+          "type": "object",
+          "required": true,
+          "description": "Dictionary mapping user IDs to grade info: {user_id: {rubric_assessment?, grade?, comment?}}"
+        },
+        {
+          "name": "dry_run",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "If true, analyze but don't submit grades"
+        },
+        {
+          "name": "max_concurrent",
+          "type": "integer",
+          "required": false,
+          "default": 5,
+          "description": "Maximum concurrent grading operations"
+        },
+        {
+          "name": "rate_limit_delay",
+          "type": "number",
+          "required": false,
+          "default": 1.0,
+          "description": "Delay between batches in seconds"
+        }
+      ],
+      "returns": "Summary of grading: total, successful, failed, error details",
+      "examples": [
+        "Grade these 10 students with their specific rubric scores"
+      ],
+      "notes": "Use dry_run=true first to preview. For complex grading logic, consider execute_typescript instead."
+    },
+    {
+      "name": "grade_with_rubric",
+      "category": "educator",
+      "description": "Grade a single student submission using a rubric",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Assignment ID"
+        },
+        {
+          "name": "user_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Student user ID"
+        },
+        {
+          "name": "rubric_assessment",
+          "type": "object",
+          "required": true,
+          "description": "Rubric criterion ratings: {criterion_id: {points, comments?}}"
+        },
+        {
+          "name": "comment",
+          "type": "string",
+          "required": false,
+          "description": "Optional student-visible overall feedback; omit unless explicitly requested. Each call appends a new comment."
+        }
+      ],
+      "returns": "Canvas response with grade/score consistent with the complete requested rubric total, refusal if rubric grading settings cannot be confirmed, or an unconfirmed-result warning; persistence and publication are not read back",
+      "examples": [
+        "Grade student 123's submission with 80 points on criterion _8027"
+      ]
+    },
+    {
+      "name": "send_conversation",
+      "category": "educator",
+      "description": "Send messages to students via Canvas inbox. Exactly one plain numeric user ID sends immediately; multiple recipients or expandable aliases (course_*/group_*) are two-step (preview + confirmation_token, then confirm with identical arguments).",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "recipients",
+          "type": "array",
+          "required": true,
+          "description": "Array of user IDs to message"
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": true,
+          "description": "Message subject"
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": true,
+          "description": "Message content"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Single-use token from the preview call"
+        }
+      ],
+      "returns": "Without a token: a preview plus confirmation_token (nothing sent), for any number of recipients; with a valid token: confirmation of message sent",
+      "examples": [
+        "Message students who haven't submitted Assignment 3"
+      ]
+    },
+    {
+      "name": "create_announcement",
+      "category": "educator",
+      "description": "Post a course announcement",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Announcement title"
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "description": "Announcement content"
+        }
+      ],
+      "returns": "Confirmation of announcement posted",
+      "examples": [
+        "Create an announcement about tomorrow's exam"
+      ]
+    },
+    {
+      "name": "list_courses",
+      "category": "shared",
+      "description": "List all enrolled courses",
+      "parameters": [],
+      "returns": "List of courses with IDs, names, and codes",
+      "examples": [
+        "Show me my courses",
+        "What courses am I enrolled in?"
+      ]
+    },
+    {
+      "name": "get_course_details",
+      "category": "shared",
+      "description": "Get detailed course information including syllabus",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        }
+      ],
+      "returns": "Course info, syllabus, and enrollment details",
+      "examples": [
+        "Show me the syllabus for BADM 350"
+      ]
+    },
+    {
+      "name": "get_syllabus",
+      "category": "shared",
+      "description": "Get the complete Canvas Syllabus tab content for a course; complete by default (unlike the overview preview), cut only by the optional max_chars cap, which is disclosed",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "output_format",
+          "type": "string",
+          "required": false,
+          "default": "text",
+          "description": "'text' (plain text), 'html' (raw HTML body), or 'both'"
+        },
+        {
+          "name": "max_chars",
+          "type": "integer",
+          "required": false,
+          "default": null,
+          "description": "Optional cap per section; truncation is explicitly marked. None = no truncation"
+        }
+      ],
+      "returns": "Full syllabus body; when max_chars cuts it, an explicit [truncated at N characters] marker",
+      "examples": [
+        "Get the full syllabus for BADM 350 including the grading policy",
+        "Show me the raw HTML of the CS101 syllabus"
+      ],
+      "notes": "Complete unless max_chars is passed; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "update_syllabus",
+      "category": "educator",
+      "description": "Set the Canvas Syllabus tab content for a course. Replacing a syllabus that already has content is two-step: preview first, then confirm with the token.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "syllabus_body",
+          "type": "string",
+          "required": false,
+          "description": "HTML for the syllabus. Canvas stores this as HTML; plain text renders without formatting. Required unless find/replace is used"
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "required": false,
+          "default": "replace",
+          "description": "'replace' swaps the whole body, 'append' adds to the end, 'prepend' adds to the start"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call. Only required when replacing a syllabus that already has content"
+        },
+        {
+          "name": "expect_body_sha256",
+          "type": "string",
+          "required": false,
+          "description": "SHA-256 of the syllabus body when you read it (get_syllabus prints it). The syllabus has no updated_at, so this is its drift check: refuse, writing nothing, if the body has changed"
+        },
+        {
+          "name": "find",
+          "type": "string",
+          "required": false,
+          "description": "Exact fragment of the current syllabus to change; must occur exactly once. Use with replace instead of syllabus_body; mode must be 'replace'"
+        },
+        {
+          "name": "replace",
+          "type": "string",
+          "required": false,
+          "description": "Text that replaces find (may be empty to delete it)"
+        },
+        {
+          "name": "require",
+          "type": "array",
+          "required": false,
+          "description": "Strings that must already be present in the current syllabus, else the tool refuses"
+        }
+      ],
+      "returns": "Confirmation that the syllabus was written, verified by reading it back from Canvas. Replacing existing content first returns a preview plus a single-use token and writes nothing.",
+      "examples": [
+        "Add a link to the course website at the top of the BADM 350 syllabus",
+        "Replace the CS101 syllabus with this HTML"
+      ],
+      "notes": "Canvas keeps no revision history for syllabus_body, so a replace cannot be undone. Append and prepend, and any write into an empty syllabus, are single-call because they destroy nothing. Optional guards (issue 419) are independent of the confirmation token: a find/replace over existing content still previews first. A guarded write is confirmed only if the stored syllabus equals the expected HTML (full body, current+new for append, new+current for prepend, or the substituted body) after whitespace normalization; otherwise unconfirmed, and reports the old and new body SHA-256."
+    },
+    {
+      "name": "list_discussion_topics",
+      "category": "shared",
+      "description": "View discussion forums in a course. Returns discussion topics only; announcements are excluded unless include_announcements is set. Use list_announcements to list announcements on their own. Without group_id it lists course-level topics only; topics that students start inside a group space are missing, so use list_group_discussion_topics to find them.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "include_announcements",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Also list the course's announcements alongside its discussion topics; each entry is labelled Type: Announcement or Type: Discussion"
+        },
+        {
+          "name": "group_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Canvas group ID, to read a discussion inside a group space instead of the course. Discussions that students start in a group exist only there. The group must belong to the course."
+        }
+      ],
+      "returns": "List of discussion topics with IDs and titles",
+      "examples": [
+        "What discussions are active in my course?"
+      ]
+    },
+    {
+      "name": "list_group_discussion_topics",
+      "category": "shared",
+      "description": "List the discussion topics inside every group space of a course, marking each as a group copy of a course topic or as started in the group itself. Topics that students start in a group exist only there, so list_discussion_topics never returns them.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "group_category_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Only include groups in this group set (default: all groups in the course)"
+        }
+      ],
+      "returns": "Per group: topic IDs, titles, entry counts, origin, and post dates",
+      "examples": [
+        "Which reference groups started their own discussions in PV1425?"
+      ]
+    },
+    {
+      "name": "list_discussion_entries",
+      "category": "shared",
+      "description": "View posts in a discussion",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "topic_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Discussion topic ID"
+        },
+        {
+          "name": "include_full_content",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Return the complete text of every entry and reply (default: False, which shows short previews)"
+        },
+        {
+          "name": "include_replies",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Fetch replies for each entry (default: False)"
+        },
+        {
+          "name": "group_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Canvas group ID, to read a discussion inside a group space instead of the course. Discussions that students start in a group exist only there. The group must belong to the course."
+        }
+      ],
+      "returns": "List of discussion posts with authors and content",
+      "examples": [
+        "Show me posts in the Week 5 discussion"
+      ],
+      "notes": "Default output previews each post and says so; with include_full_content=True every entry and reply is complete. Declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "update_discussion_topic",
+      "category": "educator",
+      "description": "Edit an existing discussion topic or announcement after a REST preflight; anonymous and REST-unservable topics are refused without an update request",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "topic_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Discussion topic ID"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "description": "New title"
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": false,
+          "description": "New body content (HTML supported)"
+        },
+        {
+          "name": "published",
+          "type": "boolean",
+          "required": false,
+          "description": "Publish or unpublish the topic"
+        },
+        {
+          "name": "pinned",
+          "type": "boolean",
+          "required": false,
+          "description": "Pin or unpin the topic"
+        },
+        {
+          "name": "locked",
+          "type": "boolean",
+          "required": false,
+          "description": "Lock or unlock the topic"
+        },
+        {
+          "name": "delayed_post_at",
+          "type": "string",
+          "required": false,
+          "description": "ISO 8601 datetime to schedule posting"
+        },
+        {
+          "name": "lock_at",
+          "type": "string",
+          "required": false,
+          "description": "ISO 8601 datetime to auto-lock the discussion"
+        },
+        {
+          "name": "require_initial_post",
+          "type": "boolean",
+          "required": false,
+          "description": "Students must post before seeing others"
+        },
+        {
+          "name": "find",
+          "type": "string",
+          "required": false,
+          "description": "Exact fragment of the current message to change; must occur exactly once or the tool refuses and reports the count. Use with replace instead of message"
+        },
+        {
+          "name": "replace",
+          "type": "string",
+          "required": false,
+          "description": "Text that replaces find (may be empty to delete it)"
+        },
+        {
+          "name": "require",
+          "type": "array",
+          "required": false,
+          "description": "Strings that must already be present in the current message, else the tool refuses"
+        },
+        {
+          "name": "expect_updated_at",
+          "type": "string",
+          "required": false,
+          "description": "Not supported: Canvas returns no updated_at for discussion topics. Passing it is an error; use expect_body_sha256"
+        },
+        {
+          "name": "expect_body_sha256",
+          "type": "string",
+          "required": false,
+          "description": "SHA-256 (hex) of the message as Canvas returned it when you read it. Topics have no updated_at, so this is the drift check: refuse, writing nothing, if the message changed"
+        }
+      ],
+      "returns": "Confirmation with updated fields and topic type",
+      "examples": [
+        "Update the Week 1 discussion prompt to mention Claude and Gemini"
+      ],
+      "notes": "Optional guards (issue 419): expect_body_sha256, find/replace on message, require. Any guard makes the tool fetch the topic first, refuse on a failed check without writing, and read it back after: confirmed only if the stored message equals the expected message (whole body, whitespace-normalized HTML) and every other requested field reads back as sent, otherwise reported unconfirmed, with old and new body SHA-256. Omitting every guard parameter leaves the call unchanged."
+    },
+    {
+      "name": "search_canvas_tools",
+      "category": "developer",
+      "description": "Search registered MCP tools AND Canvas code API operations by keyword",
+      "parameters": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Search term (empty returns all tools); matched against tool name and description"
+        },
+        {
+          "name": "detail_level",
+          "type": "string",
+          "required": false,
+          "default": "signatures",
+          "description": "names | signatures | full"
+        }
+      ],
+      "returns": "JSON with mcp_tools and code_execution_api sections, each with matching tools based on detail level",
+      "examples": [
+        "Search for peer review tools",
+        "Search for grading tools in the code API",
+        "What bulk operations are available?"
+      ]
+    },
+    {
+      "name": "execute_typescript",
+      "category": "developer",
+      "description": "Execute TypeScript locally so bulk item processing can stay out of model context",
+      "parameters": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true,
+          "description": "TypeScript code to execute (can import from ./canvas/* modules)"
+        },
+        {
+          "name": "timeout",
+          "type": "integer",
+          "required": false,
+          "default": 120,
+          "description": "Maximum execution time in seconds"
+        }
+      ],
+      "returns": "Combined stdout/stderr from execution",
+      "examples": [
+        "Grade all 90 notebook submissions using bulk grading",
+        "Send reminders to all students who haven't submitted"
+      ],
+      "notes": "Use search_canvas_tools first to discover available imports. Best for 30+ items."
+    },
+    {
+      "name": "check_enrollment",
+      "category": "educator",
+      "description": "Check whether a specific campus login ID is enrolled in a course (yes/no, never the roster)",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": true,
+          "description": "Course code, numeric ID, or SIS ID"
+        },
+        {
+          "name": "net_id",
+          "type": "string",
+          "required": true,
+          "description": "Campus login ID to check - NetID, uniqname, or email-style Canvas login, not a display name (matched against login_id, then sis_user_id; bare and email forms are equivalent)"
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": false,
+          "default": "student",
+          "description": "Enrollment type that satisfies the check: student, teacher, ta, observer, designer, or any"
+        },
+        {
+          "name": "active_only",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Only count active enrollments"
+        }
+      ],
+      "returns": "Yes/no plus minimal enrollment metadata (state, role, matched field) \u2014 never the roster",
+      "notes": "Data-minimizing roster-membership check for external access gating. Requires a teacher-scoped token; a student token yields a clean Canvas 403."
+    },
+    {
+      "name": "get_my_submission",
+      "category": "student",
+      "description": "Get your own submission for one assignment, including attempts used",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string",
+          "required": true,
+          "description": "Canvas assignment ID"
+        }
+      ],
+      "returns": "Status, submitted time, due/lock dates, attempts used vs allowed, grade, comments",
+      "examples": [
+        "Did my essay go through?",
+        "How many attempts do I have left?"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "list_my_announcements",
+      "category": "student",
+      "description": "List announcements across ALL your active courses in one call (cross-course; use list_announcements for one course's full history). Defaults to the last 14 days.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": false,
+          "description": "Course code or Canvas ID to show only that course"
+        },
+        {
+          "name": "start_date",
+          "type": "string",
+          "required": false,
+          "description": "Earliest post date, YYYY-MM-DD, MM/DD/YYYY or ISO 8601 (default: 14 days before end_date); a date-only value starts at midnight in your Canvas time zone"
+        },
+        {
+          "name": "end_date",
+          "type": "string",
+          "required": false,
+          "description": "Latest post date, same formats (default: now); a date-only value includes that whole day in your Canvas time zone"
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "default": 50,
+          "description": "Maximum announcements to show (1-200)"
+        },
+        {
+          "name": "preview_chars",
+          "type": "integer",
+          "required": false,
+          "default": 400,
+          "description": "Characters of body text to preview per announcement (0-2000; 0 = titles only)"
+        }
+      ],
+      "returns": "Announcements newest first with course code, post date, unread flag, author, fenced title and body preview, and a warning when Canvas returned an error for some courses (results may be incomplete)",
+      "examples": [
+        "What did my professors announce this week?",
+        "Any new announcements in my classes?",
+        "Show announcements from BADM 350 since September 1"
+      ]
+    },
+    {
+      "name": "get_my_activity_stream",
+      "category": "student",
+      "description": "Your recent Canvas activity across all active courses (the dashboard Recent Activity feed), grouped by kind: announcements, discussions, inbox conversations, grades and submission comments, notifications. Group activity and inbox messages not tied to a course are not included. Read-only; does not mark anything read.",
+      "parameters": [
+        {
+          "name": "item_type",
+          "type": "string",
+          "required": false,
+          "default": "all",
+          "description": "One of all, announcements, discussions, conversations, submissions, notifications"
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "default": 30,
+          "description": "Maximum items to show (1-200)"
+        },
+        {
+          "name": "include_summary",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Also show per-kind total and unread counts"
+        },
+        {
+          "name": "preview_chars",
+          "type": "integer",
+          "required": false,
+          "default": 300,
+          "description": "Characters of text to preview per item (0-2000; 0 = titles only)"
+        }
+      ],
+      "returns": "Per-kind counts with unread totals, then the newest items grouped by kind with course code, unread flag, fenced titles and previews, grades and latest submission comment",
+      "examples": [
+        "What's new in Canvas?",
+        "Did I get any new grades or feedback?",
+        "Catch me up on my classes"
+      ]
+    },
+    {
+      "name": "submit_assignment",
+      "category": "student_write",
+      "description": "Submit your own assignment. Consumes an attempt. Requires a confirmation token from a preview call.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "submission_type",
+          "type": "string",
+          "required": true,
+          "description": "online_text_entry, online_url, or online_upload"
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": false,
+          "description": "Content for online_text_entry"
+        },
+        {
+          "name": "url",
+          "type": "string",
+          "required": false,
+          "description": "URL for online_url"
+        },
+        {
+          "name": "file_paths",
+          "type": "array",
+          "required": false,
+          "description": "Local file paths, any type (local stdio servers only)"
+        },
+        {
+          "name": "file_contents",
+          "type": "array",
+          "required": false,
+          "description": "Inline files as [{name, content_base64}] (required on hosted servers)"
+        },
+        {
+          "name": "comment",
+          "type": "string",
+          "required": false,
+          "description": "Optional comment to include"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview"
+        }
+      ],
+      "returns": "A preview plus confirmation token on the first call; the submission result on the second",
+      "examples": [
+        "Submit my essay to assignment 4821",
+        "Yes, submit it"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS, and an instructor can block it per course. Group assignments and quizzes are not supported."
+    },
+    {
+      "name": "comment_on_my_submission",
+      "category": "student_write",
+      "description": "Add a comment to your own submission",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "comment",
+          "type": "string",
+          "required": true,
+          "description": "The comment text"
+        }
+      ],
+      "returns": "Confirmation the comment was added",
+      "examples": [
+        "Add a note to my submission explaining the late turn-in"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS."
+    },
+    {
+      "name": "mark_module_item_done",
+      "category": "student_write",
+      "description": "Mark a module item done for yourself",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "module_id",
+          "type": "string",
+          "required": true,
+          "description": "Canvas module ID"
+        },
+        {
+          "name": "item_id",
+          "type": "string",
+          "required": true,
+          "description": "Canvas module item ID"
+        }
+      ],
+      "returns": "Confirmation the item was marked done",
+      "examples": [
+        "Mark the week 3 reading as done"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS."
+    },
+    {
+      "name": "list_code_api_modules",
+      "category": "developer",
+      "description": "List all available TypeScript modules in the code execution API.",
+      "parameters": [],
+      "returns": "Importable TypeScript modules organized by category with descriptions",
+      "examples": [
+        "What bulk-operation modules can execute_typescript import?"
+      ],
+      "notes": "Shows importable TypeScript files for execute_typescript, organized by category with descriptions. Use to discover available bulk operations."
+    },
+    {
+      "name": "add_module_item",
+      "category": "educator",
+      "description": "Add an item to a module.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "module_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Target module ID"
+        },
+        {
+          "name": "item_type",
+          "type": "string",
+          "required": true,
+          "description": "One of: File, Page, Discussion, Assignment, Quiz, SubHeader, ExternalUrl, ExternalTool"
+        },
+        {
+          "name": "content_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Canvas ID of the content (required for File, Discussion, Assignment, Quiz, ExternalTool)"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "description": "Item title (required for SubHeader, ExternalUrl; optional for others)"
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "required": false,
+          "description": "Position within module (1-indexed)"
+        },
+        {
+          "name": "indent",
+          "type": "integer",
+          "required": false,
+          "description": "Indentation level (0-4)"
+        },
+        {
+          "name": "page_url",
+          "type": "string",
+          "required": false,
+          "description": "URL slug of the page (required for Page type)"
+        },
+        {
+          "name": "external_url",
+          "type": "string",
+          "required": false,
+          "description": "URL for ExternalUrl items"
+        },
+        {
+          "name": "new_tab",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Open external links in new tab (default: False)"
+        },
+        {
+          "name": "completion_requirement_type",
+          "type": "string",
+          "required": false,
+          "description": "One of: must_view, must_submit, must_contribute, min_score, must_mark_done"
+        },
+        {
+          "name": "completion_requirement_min_score",
+          "type": "integer",
+          "required": false,
+          "description": "Minimum score (only for min_score type)"
+        }
+      ],
+      "returns": "Created module item details including ID, type, and position",
+      "examples": [
+        "Add the 'Week 1 Overview' page to the Introduction module",
+        "Add assignment 4821 to module 12"
+      ],
+      "notes": "IMPORTANT: content_id required for File, Discussion, Assignment, Quiz, ExternalTool. page_url required for Page. title required for SubHeader, ExternalUrl."
+    },
+    {
+      "name": "analyze_peer_review_quality",
+      "category": "educator",
+      "description": "Analyze the quality and content of peer review comments.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "analysis_criteria",
+          "type": "string",
+          "required": false,
+          "description": "JSON string of custom criteria"
+        },
+        {
+          "name": "generate_report",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Generate detailed analysis report"
+        }
+      ],
+      "returns": "Quality analysis of peer review comments (word counts, specificity, tone) with optional report",
+      "examples": [
+        "Analyze the quality of peer reviews on the essay assignment"
+      ]
+    },
+    {
+      "name": "assign_peer_review",
+      "category": "educator",
+      "description": "Manually assign a peer review to a student for a specific assignment.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "reviewer_id",
+          "type": "string",
+          "required": true,
+          "description": "User ID of the student who will review"
+        },
+        {
+          "name": "reviewee_id",
+          "type": "string",
+          "required": true,
+          "description": "User ID of the student whose submission will be reviewed"
+        }
+      ],
+      "returns": "Confirmation of the created peer review assignment (reviewer and reviewee)",
+      "examples": [
+        "Assign student 123 to review student 456's submission"
+      ]
+    },
+    {
+      "name": "associate_rubric",
+      "category": "educator",
+      "description": "Associate an existing rubric with an assignment.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "rubric_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "ID of the rubric to associate"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "ID of the assignment to associate with"
+        },
+        {
+          "name": "use_for_grading",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Use rubric for grade calculation (default: False)"
+        },
+        {
+          "name": "purpose",
+          "type": "string",
+          "required": false,
+          "default": "grading",
+          "description": "Association purpose: grading, bookmark (default: grading)"
+        }
+      ],
+      "returns": "Association details with the rubric ID and assignment, or a warning if the association could not be confirmed",
+      "examples": [
+        "Attach rubric 789 to the final project assignment"
+      ]
+    },
+    {
+      "name": "bulk_delete_announcements",
+      "category": "educator",
+      "description": "Delete multiple announcements from a Canvas course. Two-step: preview first, then confirm with the token.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "announcement_ids",
+          "type": "array",
+          "required": true,
+          "description": "List of announcement IDs to delete"
+        },
+        {
+          "name": "stop_on_error",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Stop at the first failed deletion; if false, continue with the rest (default: false)"
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "default": 25,
+          "description": "Max number of announcements per call (default: 25); pass a higher value to override"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview. Single-use, expires in 5 minutes, stops matching if the target changes."
+        }
+      ],
+      "returns": "First call (no token): a preview of exactly what would be deleted plus a confirmation token, nothing deleted. Second call with the token: the deletion result.",
+      "examples": [
+        "Delete announcements 101, 102, and 103 from BADM 350"
+      ],
+      "notes": "Permanent \u2014 Canvas may retain a recycle-bin copy depending on admin settings."
+    },
+    {
+      "name": "bulk_update_pages",
+      "category": "educator",
+      "description": "Update settings for multiple pages at once.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "page_urls",
+          "type": "string",
+          "required": true,
+          "description": "Comma-separated list of page URL slugs"
+        },
+        {
+          "name": "published",
+          "type": "boolean",
+          "required": false,
+          "description": "True to publish all, False to unpublish all"
+        },
+        {
+          "name": "editing_roles",
+          "type": "string",
+          "required": false,
+          "description": "One of: teachers, students, members, public"
+        },
+        {
+          "name": "notify_of_update",
+          "type": "boolean",
+          "required": false,
+          "description": "True to notify users of updates"
+        }
+      ],
+      "returns": "Per-page success/failure summary of the settings updates",
+      "examples": [
+        "Publish all draft pages in the course",
+        "Unpublish these five pages"
+      ],
+      "notes": "Settings only \u2014 this tool cannot rename pages or change page content. Use edit_page_content to change a page's body."
+    },
+    {
+      "name": "create_discussion_topic",
+      "category": "educator",
+      "description": "Create a new discussion topic for a course.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Discussion topic title"
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "description": "Discussion topic body content"
+        },
+        {
+          "name": "delayed_post_at",
+          "type": "string",
+          "required": false,
+          "description": "ISO 8601 datetime to schedule posting"
+        },
+        {
+          "name": "lock_at",
+          "type": "string",
+          "required": false,
+          "description": "ISO 8601 datetime to auto-lock the discussion"
+        },
+        {
+          "name": "require_initial_post",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Students must post before seeing others (default: False)"
+        },
+        {
+          "name": "pinned",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Pin this discussion topic (default: False)"
+        }
+      ],
+      "returns": "Created discussion topic details including ID and title",
+      "examples": [
+        "Create a discussion topic called 'Week 3 Reflection'"
+      ]
+    },
+    {
+      "name": "create_module",
+      "category": "educator",
+      "description": "Create a new module in a course.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Module name"
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "required": false,
+          "description": "Position in module list (1-indexed)"
+        },
+        {
+          "name": "unlock_at",
+          "type": "string",
+          "required": false,
+          "description": "Unlock date/time (ISO 8601)"
+        },
+        {
+          "name": "require_sequential_progress",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Students must complete items in order"
+        },
+        {
+          "name": "prerequisite_module_ids",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated module IDs that must be completed first"
+        },
+        {
+          "name": "published",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Whether the module is published (default: True)"
+        }
+      ],
+      "returns": "Created module details including ID, name, and position",
+      "examples": [
+        "Create a module called 'Week 5: Databases'"
+      ]
+    },
+    {
+      "name": "create_page",
+      "category": "educator",
+      "description": "Create a new page in a Canvas course.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Page title"
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": true,
+          "description": "HTML content for the page"
+        },
+        {
+          "name": "published",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Whether to publish (default: True)"
+        },
+        {
+          "name": "front_page",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Whether to set as front page (default: False)"
+        },
+        {
+          "name": "editing_roles",
+          "type": "string",
+          "required": false,
+          "default": "teachers",
+          "description": "Who can edit (default: \"teachers\")"
+        }
+      ],
+      "returns": "Created page details including URL slug and publication state",
+      "examples": [
+        "Create a course page called 'Office Hours' with this content"
+      ]
+    },
+    {
+      "name": "create_rubric",
+      "category": "educator",
+      "description": "Create a new rubric in a course, optionally associating it with an assignment.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Rubric title"
+        },
+        {
+          "name": "criteria",
+          "type": "string",
+          "required": true,
+          "description": "JSON string defining rubric criteria (see docstring above)"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Optional assignment ID to immediately associate the rubric with"
+        },
+        {
+          "name": "use_for_grading",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "When associating with an assignment, use rubric for grade\n             calculation (default: False)"
+        },
+        {
+          "name": "reusable",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Make rubric reusable across courses (default: False)"
+        },
+        {
+          "name": "free_form_criterion_comments",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Allow free-form comments per criterion\n                          instead of rating selection (default: False)"
+        }
+      ],
+      "returns": "Created rubric details including ID, points, and any assignment association",
+      "examples": [
+        "Create a 20-point rubric with criteria for clarity and analysis"
+      ],
+      "notes": "Uses bracket-notation form-data encoding required by the Canvas rubric API. The ``criteria`` parameter is a JSON string mapping arbitrary criterion keys to objects with the following fields: - ``description`` (required): Short criterion label shown in the rubric grid - ``points`` (required): Maximum points for this criterion (non-negative number) - ``long_description`` (optional): Detailed criterion description - ``ratings`` (optional): List (or object) of rating levels, each with:     - ``description`` (required): Rating label (e.g. \"Excellent\")     - ``points`` (required): Points for this rating (non-negative number)     - ``long_description`` (optional): Detailed rating description Example ``criteria`` JSON:: {       \"c1\": {         \"description\": \"Content Quality\",         \"points\": 10,         \"ratings\": [           {\"description\": \"Excellent\", \"points\": 10},           {\"description\": \"Satisfactory\", \"points\": 7},           {\"description\": \"Needs Work\", \"points\": 3}         ]       },       \"c2\": {         \"description\": \"Grammar\",         \"points\": 5,         \"ratings\": [           {\"description\": \"No errors\", \"points\": 5},           {\"description\": \"Minor errors\", \"points\": 3}         ]       }     }"
+    },
+    {
+      "name": "update_rubric",
+      "category": "educator",
+      "description": "Safely replace an existing rubric after preview and confirmation.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "rubric_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Existing Canvas rubric ID"
+        },
+        {
+          "name": "rubric_association_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Existing rubric-association join-record ID"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Complete replacement rubric title"
+        },
+        {
+          "name": "criteria",
+          "type": "string",
+          "required": true,
+          "description": "Complete ID-keyed JSON criteria and ratings set; every existing ID must be preserved"
+        },
+        {
+          "name": "free_form_criterion_comments",
+          "type": "boolean",
+          "required": false,
+          "description": "Whether free-form criterion comments are enabled; omit to preserve the current setting"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Single-use token returned by the preview call"
+        }
+      ],
+      "returns": "A no-write preview with confirmation token, or a verified update result",
+      "examples": [
+        "Preview an ID-preserving update to rubric 7371 and association 8801"
+      ],
+      "notes": "Two-step destructive tool. It fetches the complete rubric and association, rejects missing or unknown criterion/rating IDs, preserves non-editable scoring flags, binds the preview token to current and requested state, and re-reads the rubric after the PUT. A different returned rubric ID or association ID is reported as unconfirmed and is never retried automatically."
+    },
+    {
+      "name": "create_rubric_from_csv",
+      "category": "educator",
+      "description": "Create one or more rubrics in a course from a CSV string.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "csv_content",
+          "type": "string",
+          "required": true,
+          "description": "The content of the CSV file as a string"
+        }
+      ],
+      "returns": "Import status with created rubric names/IDs, or per-row errors if the import partially failed",
+      "examples": [
+        "Import these three rubrics from CSV"
+      ],
+      "notes": "Uses Canvas's native rubric CSV import endpoint, then polls the import job until it reaches a terminal workflow_state. A ``Rubric Name`` column is REQUIRED \u2014 Canvas rejects the import without it and creates nothing. Required format (repeat the rating triple per rating level; a distinct Rubric Name per row creates multiple rubrics):: Rubric Name,Criteria Name,Criteria Description,Criteria Enable Range,Rating Name,Rating Description,Rating Points     Essay Rubric,Clarity,Is the argument clear,false,Excellent,Very clear,10 Two Canvas behaviours to be aware of: - Imported rubrics land in the ``Draft`` state and are **not** returned   by ``list_rubrics`` / ``GET /courses/:id/rubrics``, though they do   appear on the course Rubrics page. An empty ``list_rubrics`` result is   not evidence the import failed. - ``succeeded_with_errors`` is a terminal state, not a transient one, and   can mean zero rubrics were created."
+    },
+    {
+      "name": "create_student_anonymization_map",
+      "category": "educator",
+      "description": "Create a local CSV file mapping real student data to anonymous IDs for a course.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        }
+      ],
+      "returns": "Path to the CSV mapping file plus a summary of mapped students",
+      "examples": [
+        "Create an anonymization map for BADM 350"
+      ]
+    },
+    {
+      "name": "delete_announcement_with_confirmation",
+      "category": "educator",
+      "description": "Delete an announcement with optional safety checks. Two-step: preview first, then confirm with the token.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "announcement_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Announcement ID to delete"
+        },
+        {
+          "name": "require_title_match",
+          "type": "string",
+          "required": false,
+          "description": "Only delete if title matches this string exactly"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview. Single-use, expires in 5 minutes, stops matching if the target changes."
+        }
+      ],
+      "returns": "First call (no token): a preview of exactly what would be deleted plus a confirmation token, nothing deleted. Second call with the token: the deletion result.",
+      "examples": [
+        "Delete the 'Old Exam Info' announcement, but show me it first"
+      ],
+      "notes": "Permanent \u2014 Canvas may retain a recycle-bin copy depending on admin settings."
+    },
+    {
+      "name": "delete_announcements_by_criteria",
+      "category": "educator",
+      "description": "Delete announcements matching specific criteria. Two-step: preview first, then confirm with the token.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "criteria",
+          "type": "object",
+          "required": true,
+          "description": "Dict with keys: title_contains, older_than (ISO), newer_than (ISO), title_regex"
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "description": "Max number of announcements to delete (safety limit)"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview. Single-use, expires in 5 minutes, stops matching if the target changes."
+        }
+      ],
+      "returns": "First call (no token): a preview of exactly what would be deleted plus a confirmation token, nothing deleted. Second call with the token: the deletion result.",
+      "examples": [
+        "Delete all announcements older than 90 days (preview first)"
+      ],
+      "notes": "Permanent \u2014 Canvas may retain a recycle-bin copy depending on admin settings."
+    },
+    {
+      "name": "delete_module",
+      "category": "educator",
+      "description": "Delete a module from a course. Two-step: preview first, then confirm with the token.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "module_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Module ID to delete"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview. Single-use, expires in 5 minutes, stops matching if the target changes."
+        }
+      ],
+      "returns": "First call (no token): a preview of exactly what would be deleted plus a confirmation token, nothing deleted. Second call with the token: the deletion result.",
+      "examples": [
+        "Delete the empty 'Week 0' module"
+      ],
+      "notes": "IMPORTANT: Permanently removes the module and its item associations. The actual content (pages, assignments, etc.) is NOT deleted, only the module organization."
+    },
+    {
+      "name": "delete_module_item",
+      "category": "educator",
+      "description": "Remove an item from a module. Two-step: preview first, then confirm with the token.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "module_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Module ID containing the item"
+        },
+        {
+          "name": "item_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Item ID to remove"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview. Single-use, expires in 5 minutes, stops matching if the target changes."
+        }
+      ],
+      "returns": "First call (no token): a preview of exactly what would be deleted plus a confirmation token, nothing deleted. Second call with the token: the deletion result.",
+      "examples": [
+        "Remove item 33 from module 12"
+      ],
+      "notes": "IMPORTANT: Only unlinks the item from the module. The actual content (page, assignment, etc.) is NOT deleted."
+    },
+    {
+      "name": "delete_page",
+      "category": "educator",
+      "description": "Delete a page from a Canvas course. Two-step: preview first, then confirm with the token.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "page_url_or_id",
+          "type": "string",
+          "required": true,
+          "description": "Page URL slug or page ID to delete"
+        },
+        {
+          "name": "require_title_match",
+          "type": "string",
+          "required": false,
+          "description": "Safety check \u2014 only delete if page title matches exactly"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview. Single-use, expires in 5 minutes, stops matching if the target changes."
+        }
+      ],
+      "returns": "First call (no token): a preview of exactly what would be deleted plus a confirmation token, nothing deleted. Second call with the token: the deletion result.",
+      "examples": [
+        "Delete the outdated 'Fall 2024 Schedule' page"
+      ],
+      "notes": "Permanent \u2014 Canvas may retain a recycle-bin copy depending on admin settings."
+    },
+    {
+      "name": "edit_page_content",
+      "category": "educator",
+      "description": "Edit the content of a specific page.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "page_url_or_id",
+          "type": "string",
+          "required": true,
+          "description": "Page URL slug or page ID"
+        },
+        {
+          "name": "new_content",
+          "type": "string",
+          "required": false,
+          "description": "Complete new HTML body (replaces the old body). Required unless find/replace is used"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "description": "Optional new title for the page"
+        },
+        {
+          "name": "expect_updated_at",
+          "type": "string",
+          "required": false,
+          "description": "The page's updated_at when you read it. The tool fetches the page first and refuses, writing nothing, unless it is the same instant; Z and offset forms of one instant match"
+        },
+        {
+          "name": "find",
+          "type": "string",
+          "required": false,
+          "description": "Exact fragment of the current body to change; must occur exactly once or the tool refuses and reports the count. Use with replace instead of new_content"
+        },
+        {
+          "name": "replace",
+          "type": "string",
+          "required": false,
+          "description": "Text that replaces find (may be empty to delete it)"
+        },
+        {
+          "name": "require",
+          "type": "array",
+          "required": false,
+          "description": "Strings that must already be present in the current body, else the tool refuses"
+        }
+      ],
+      "returns": "Updated page details confirming the new content was saved",
+      "examples": [
+        "Update the 'Course Policies' page with this new HTML"
+      ],
+      "notes": "Optional guards (issue 419): expect_updated_at, find/replace, require. Any guard parameter makes the tool fetch the object first, refuse on a failed check without writing, and read it back after the write: the result is reported as confirmed only if updated_at advanced, the stored body equals the expected body (whole body, whitespace-normalized HTML), and every other requested field reads back as sent, otherwise as unconfirmed with old and new updated_at. Omitting every guard parameter leaves the call unchanged."
+    },
+    {
+      "name": "extract_peer_review_dataset",
+      "category": "educator",
+      "description": "Export all peer review data in various formats for analysis.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "output_format",
+          "type": "string",
+          "required": false,
+          "default": "csv",
+          "description": "Output format (csv, json, xlsx)"
+        },
+        {
+          "name": "include_analytics",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include quality analytics"
+        },
+        {
+          "name": "anonymize_data",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Anonymize student data"
+        },
+        {
+          "name": "save_locally",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Save file locally"
+        },
+        {
+          "name": "filename",
+          "type": "string",
+          "required": false,
+          "description": "Custom filename"
+        }
+      ],
+      "returns": "Peer review dataset in the requested format (json, csv, or summary)",
+      "examples": [
+        "Export all peer review data for the essay assignment as CSV"
+      ]
+    },
+    {
+      "name": "fetch_ufixit_report",
+      "category": "educator",
+      "description": "Fetch UFIXIT accessibility report from Canvas course pages.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "page_title",
+          "type": "string",
+          "required": false,
+          "default": "UFIXIT",
+          "description": "Title of the UFIXIT report page (default: \"UFIXIT\")"
+        }
+      ],
+      "returns": "UFIXIT report content retrieved from the course, ready for parse_ufixit_violations",
+      "examples": [
+        "Fetch the UFIXIT accessibility report for BADM 350"
+      ]
+    },
+    {
+      "name": "fix_accessibility_issues",
+      "category": "educator",
+      "description": "Auto-fix accessibility issues in Canvas course content.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "fix_types",
+          "type": "string",
+          "required": false,
+          "default": "th_scope,low_contrast,legacy_designplus,redundant_alt_prefix",
+          "description": "Comma-separated fix types to apply:\nth_scope - Add scope=\"col\" to <th> without scope\nlow_contrast - Fix white text on #ff5f05 orange backgrounds\nlegacy_designplus - Migrate kl_ classes to dp- equivalents\nredundant_alt_prefix - Remove \"image of\" prefix from alt text"
+        },
+        {
+          "name": "content_types",
+          "type": "string",
+          "required": false,
+          "default": "pages",
+          "description": "Comma-separated types to fix: pages, assignments"
+        },
+        {
+          "name": "dry_run",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "If True, preview changes without applying. Set False to apply."
+        }
+      ],
+      "returns": "Preview of fixes (dry run) or per-item results of applied accessibility fixes",
+      "examples": [
+        "Fix the auto-fixable accessibility issues found in the scan"
+      ],
+      "notes": "Applies automated fixes for issues flagged as auto_fixable by the scanner. Run scan_course_content_accessibility first to see what will be fixed. Default is dry_run=True (preview only). Set dry_run=False to apply changes."
+    },
+    {
+      "name": "format_accessibility_summary",
+      "category": "educator",
+      "description": "Format parsed violations into a human-readable summary.",
+      "parameters": [
+        {
+          "name": "violations_json",
+          "type": "string",
+          "required": true,
+          "description": "JSON string from parse_ufixit_violations"
+        }
+      ],
+      "returns": "Human-readable accessibility summary grouped by severity",
+      "examples": [
+        "Summarize these accessibility violations"
+      ]
+    },
+    {
+      "name": "generate_peer_review_feedback_report",
+      "category": "educator",
+      "description": "Create instructor-ready reports on peer review quality.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "report_type",
+          "type": "string",
+          "required": false,
+          "default": "comprehensive",
+          "description": "Report type (comprehensive, summary, individual)"
+        },
+        {
+          "name": "include_student_names",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Include student names"
+        },
+        {
+          "name": "format_type",
+          "type": "string",
+          "required": false,
+          "default": "markdown",
+          "description": "Output format (markdown, html, text)"
+        }
+      ],
+      "returns": "Instructor-ready peer review quality report in the requested format",
+      "examples": [
+        "Generate a peer review quality report for the essay assignment"
+      ]
+    },
+    {
+      "name": "generate_peer_review_report",
+      "category": "educator",
+      "description": "Generate peer review completion report with summary, analytics, and follow-up recommendations.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "report_format",
+          "type": "string",
+          "required": false,
+          "default": "markdown",
+          "description": "Output format (markdown, csv, json)"
+        },
+        {
+          "name": "include_executive_summary",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include executive summary"
+        },
+        {
+          "name": "include_student_details",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include student details"
+        },
+        {
+          "name": "include_action_items",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include action items"
+        },
+        {
+          "name": "include_timeline_analysis",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include timeline analysis"
+        },
+        {
+          "name": "save_to_file",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Save report to local file"
+        },
+        {
+          "name": "filename",
+          "type": "string",
+          "required": false,
+          "description": "Custom filename for saved report"
+        }
+      ],
+      "returns": "Completion report with summary statistics, per-student status, and follow-up recommendations",
+      "examples": [
+        "Generate a peer review completion report for assignment 4821"
+      ]
+    },
+    {
+      "name": "get_anonymization_status",
+      "category": "educator",
+      "description": "Get current data anonymization status and statistics.",
+      "parameters": [],
+      "returns": "Current anonymization configuration and statistics",
+      "examples": [
+        "Is data anonymization enabled on this server?"
+      ]
+    },
+    {
+      "name": "get_peer_review_assignments",
+      "category": "educator",
+      "description": "Get peer review assignment mapping showing who reviews whom with completion status.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "include_names",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include student names"
+        },
+        {
+          "name": "include_submission_details",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Include submission metadata"
+        }
+      ],
+      "returns": "Reviewer-to-reviewee mapping with per-review completion status",
+      "examples": [
+        "Who is reviewing whom on the essay assignment?"
+      ]
+    },
+    {
+      "name": "get_peer_review_comments",
+      "category": "educator",
+      "description": "Retrieve actual comment text for peer reviews on an assignment.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "include_reviewer_info",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include reviewer details"
+        },
+        {
+          "name": "include_reviewee_info",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include reviewee details"
+        },
+        {
+          "name": "include_submission_context",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Include submission details"
+        },
+        {
+          "name": "anonymize_students",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Replace names with anonymous IDs"
+        }
+      ],
+      "returns": "Peer review comment text organized by reviewer, reviewee, or flat list",
+      "examples": [
+        "Show me the actual peer review comments on assignment 4821"
+      ]
+    },
+    {
+      "name": "get_peer_review_completion_analytics",
+      "category": "educator",
+      "description": "Get peer review completion analytics with student-level breakdown and summary stats.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "include_student_details",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include per-student breakdown"
+        },
+        {
+          "name": "group_by_status",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Group students by completion status"
+        }
+      ],
+      "returns": "Completion statistics with per-student breakdown",
+      "examples": [
+        "What fraction of peer reviews are complete?"
+      ]
+    },
+    {
+      "name": "get_peer_review_followup_list",
+      "category": "educator",
+      "description": "Get prioritized list of students needing follow-up on peer review completion.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "priority_filter",
+          "type": "string",
+          "required": false,
+          "default": "all",
+          "description": "Filter by priority (urgent, medium, low, all)"
+        },
+        {
+          "name": "include_contact_info",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Include email addresses"
+        },
+        {
+          "name": "days_threshold",
+          "type": "integer",
+          "required": false,
+          "default": 3,
+          "description": "Days since assignment for urgency calculation"
+        }
+      ],
+      "returns": "Prioritized list of students to follow up with, by incomplete review count",
+      "examples": [
+        "Which students still owe peer reviews?"
+      ]
+    },
+    {
+      "name": "get_rubric",
+      "category": "educator",
+      "description": "Get detailed rubric criteria, ratings, and points.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "rubric_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Canvas rubric ID (direct lookup)"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Canvas assignment ID (get rubric attached to assignment)"
+        }
+      ],
+      "returns": "Full rubric criteria with ratings and point values",
+      "examples": [
+        "Show me the rubric attached to the final project"
+      ],
+      "notes": "Accepts either rubric_id or assignment_id (at least one required). If both provided, uses rubric_id (more specific). Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "get_rubric_assessment",
+      "category": "educator",
+      "description": "Get rubric assessment scores for a specific submission.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "user_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas user ID of the student"
+        }
+      ],
+      "returns": "Rubric scores and comments for the student's submission",
+      "examples": [
+        "What rubric scores did student 123 get on the essay?"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "identify_problematic_peer_reviews",
+      "category": "educator",
+      "description": "Flag reviews that may need instructor attention.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "criteria",
+          "type": "string",
+          "required": false,
+          "description": "JSON string of custom flagging criteria"
+        }
+      ],
+      "returns": "Reviews flagged for instructor attention with the reason each was flagged",
+      "examples": [
+        "Flag any peer reviews that look too short or unhelpful"
+      ]
+    },
+    {
+      "name": "list_announcements",
+      "category": "shared",
+      "description": "List a course's announcements, and nothing else. Ordinary discussion topics are excluded; use list_discussion_topics for those.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        }
+      ],
+      "returns": "List of announcements with IDs, titles, and post dates",
+      "examples": [
+        "Show recent announcements in BADM 350"
+      ]
+    },
+    {
+      "name": "list_groups",
+      "category": "educator",
+      "description": "List all groups and their members for a specific course.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        }
+      ],
+      "returns": "All course groups with their members",
+      "examples": [
+        "Show the project groups in BADM 350"
+      ]
+    },
+    {
+      "name": "list_peer_reviews",
+      "category": "educator",
+      "description": "List all peer review assignments for a specific assignment.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string",
+          "required": true,
+          "description": "Canvas assignment ID"
+        }
+      ],
+      "returns": "All peer review assignments for the assignment with completion state",
+      "examples": [
+        "List the peer reviews on assignment 4821"
+      ]
+    },
+    {
+      "name": "list_rubrics",
+      "category": "educator",
+      "description": "List all rubrics in a specific course with optional detailed criteria.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "include_criteria",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include detailed criteria and ratings (default: True)"
+        }
+      ],
+      "returns": "All rubrics in the course, optionally with full criteria",
+      "examples": [
+        "What rubrics exist in this course?"
+      ]
+    },
+    {
+      "name": "list_users",
+      "category": "educator",
+      "description": "List users enrolled in a specific course.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        }
+      ],
+      "returns": "Enrolled users with IDs and roles (names subject to anonymization settings)",
+      "examples": [
+        "List the students enrolled in BADM 350"
+      ]
+    },
+    {
+      "name": "parse_ufixit_violations",
+      "category": "educator",
+      "description": "Parse UFIXIT report content to extract accessibility violations.",
+      "parameters": [
+        {
+          "name": "report_json",
+          "type": "string",
+          "required": true,
+          "description": "JSON string from fetch_ufixit_report"
+        }
+      ],
+      "returns": "Structured list of accessibility violations extracted from the report",
+      "examples": [
+        "Parse this UFIXIT report into individual violations"
+      ]
+    },
+    {
+      "name": "scan_course_content_accessibility",
+      "category": "educator",
+      "description": "Scan Canvas course content for basic accessibility issues.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "content_types",
+          "type": "string",
+          "required": false,
+          "default": "pages,assignments",
+          "description": "Comma-separated types to scan: pages, assignments, discussions, syllabus"
+        }
+      ],
+      "returns": "Accessibility issues found, grouped by page/item, with auto-fixable flags",
+      "examples": [
+        "Scan my course for accessibility problems"
+      ]
+    },
+    {
+      "name": "send_bulk_messages_from_list",
+      "category": "educator",
+      "description": "Send customized messages to multiple recipients using templates. Two-step: call without confirmation_token for a preview + token, then call again with the token and identical arguments to send.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "recipient_data",
+          "type": "array",
+          "required": true,
+          "description": "List of dicts with recipient info and template variables"
+        },
+        {
+          "name": "subject_template",
+          "type": "string",
+          "required": true,
+          "description": "Subject with placeholders (e.g., \"Reminder - {missing_count} reviews\")"
+        },
+        {
+          "name": "body_template",
+          "type": "string",
+          "required": true,
+          "description": "Body with placeholders (e.g., \"Hi {name}, you have {missing_count}...\")"
+        },
+        {
+          "name": "context_code",
+          "type": "string",
+          "required": false,
+          "description": "Course context"
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "required": false,
+          "default": "sync",
+          "description": "\"sync\" or \"async\""
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Single-use token from the preview call; omit to preview without sending"
+        }
+      ],
+      "returns": "Without confirmation_token: a preview rendering every outbound message, plus a token, and nothing sent. With a valid token: per-recipient success/failure summary of sent messages",
+      "examples": [
+        "Send this templated reminder to these 12 students"
+      ]
+    },
+    {
+      "name": "send_peer_review_followup_campaign",
+      "category": "educator",
+      "description": "Complete workflow: analyze peer reviews and send targeted reminders. Two-step: preview returns each batch's rendered subject/body plus a confirmation_token; confirm with the token to send. The token is void if completion analytics shifted or the composed messages changed.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Single-use token from the preview call; omit to preview without sending"
+        }
+      ],
+      "returns": "Without a token: analytics, planned reminder groups, and a confirmation_token (nothing sent). With a valid token: campaign summary with send results",
+      "examples": [
+        "Analyze peer review completion and remind everyone who's behind"
+      ]
+    },
+    {
+      "name": "send_peer_review_inbox_messages",
+      "category": "educator",
+      "description": "Send direct Canvas Inbox messages about incomplete peer reviews. This does not invoke Canvas's native reminder action. Requires manage_grades permission. Two-step: preview returns the composed message plus a confirmation_token; confirm with the token and identical arguments to send.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas assignment ID"
+        },
+        {
+          "name": "recipient_ids",
+          "type": "array",
+          "required": true,
+          "description": "List of Canvas user IDs needing reminders"
+        },
+        {
+          "name": "custom_message",
+          "type": "string",
+          "required": false,
+          "description": "Custom message (uses default template if None)"
+        },
+        {
+          "name": "include_assignment_link",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include direct link to assignment"
+        },
+        {
+          "name": "subject_prefix",
+          "type": "string",
+          "required": false,
+          "default": "Peer Review Reminder",
+          "description": "Prefix for message subject"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Single-use token from the preview call; omit to preview without sending"
+        }
+      ],
+      "returns": "Without a token: a direct Canvas Inbox message preview (recipients, composed subject and body) plus a confirmation_token (nothing sent). With a valid token: the Canvas conversation send result",
+      "examples": [
+        "Send peer review reminders to these five students"
+      ]
+    },
+    {
+      "name": "update_assignment",
+      "category": "educator",
+      "description": "Update an existing assignment in a course.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Assignment ID to update"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "New assignment name/title"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "description": "New HTML description"
+        },
+        {
+          "name": "submission_types",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated types (online_text_entry, online_url, online_upload, discussion_topic, none, on_paper, external_tool)"
+        },
+        {
+          "name": "due_at",
+          "type": "string",
+          "required": false,
+          "description": "New due date in ISO 8601 format"
+        },
+        {
+          "name": "unlock_at",
+          "type": "string",
+          "required": false,
+          "description": "New available date in ISO 8601 format"
+        },
+        {
+          "name": "lock_at",
+          "type": "string",
+          "required": false,
+          "description": "New lock date in ISO 8601 format"
+        },
+        {
+          "name": "points_possible",
+          "type": "number",
+          "required": false,
+          "description": "New maximum points"
+        },
+        {
+          "name": "grading_type",
+          "type": "string",
+          "required": false,
+          "description": "One of: points, letter_grade, pass_fail, percent, not_graded"
+        },
+        {
+          "name": "published",
+          "type": "boolean",
+          "required": false,
+          "description": "Whether to publish the assignment"
+        },
+        {
+          "name": "assignment_group_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Assignment group ID to move to"
+        },
+        {
+          "name": "peer_reviews",
+          "type": "boolean",
+          "required": false,
+          "description": "Enable peer reviews"
+        },
+        {
+          "name": "automatic_peer_reviews",
+          "type": "boolean",
+          "required": false,
+          "description": "Auto-assign peer reviews"
+        },
+        {
+          "name": "allowed_extensions",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated file extensions (e.g., \"pdf,docx,txt\")"
+        },
+        {
+          "name": "expect_updated_at",
+          "type": "string",
+          "required": false,
+          "description": "The assignment's updated_at when you read it. The tool fetches the assignment first and refuses, writing nothing, unless it is the same instant; Z and offset forms of one instant match"
+        },
+        {
+          "name": "find",
+          "type": "string",
+          "required": false,
+          "description": "Exact fragment of the current description to change; must occur exactly once or the tool refuses and reports the count. Use with replace instead of description"
+        },
+        {
+          "name": "replace",
+          "type": "string",
+          "required": false,
+          "description": "Text that replaces find (may be empty to delete it)"
+        },
+        {
+          "name": "require",
+          "type": "array",
+          "required": false,
+          "description": "Strings that must already be present in the current description, else the tool refuses"
+        }
+      ],
+      "returns": "Updated assignment details confirming the changes",
+      "examples": [
+        "Move the essay deadline to Friday 11:59pm",
+        "Change the assignment to 25 points"
+      ],
+      "notes": "Optional guards (issue 419): expect_updated_at, find/replace on description, require. Any guard parameter makes the tool fetch the object first, refuse on a failed check without writing, and read it back after the write: the result is reported as confirmed only if updated_at advanced, the stored body equals the expected body (whole body, whitespace-normalized HTML), and every other requested field reads back as sent, otherwise as unconfirmed with old and new updated_at. Omitting every guard parameter leaves the call unchanged."
+    },
+    {
+      "name": "delete_assignment_with_confirmation",
+      "category": "educator",
+      "description": "Delete an assignment. Two-step: preview first, then confirm with the token.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "assignment_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Assignment ID to delete"
+        },
+        {
+          "name": "require_name_match",
+          "type": "string",
+          "required": false,
+          "description": "Only delete if the assignment name matches this string exactly"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview. Single-use, expires in 5 minutes, stops matching if the target changes."
+        }
+      ],
+      "returns": "First call (no token): a preview of exactly what would be deleted plus a confirmation token, nothing deleted. Second call with the token: the deletion result.",
+      "examples": [
+        "Delete the duplicate 'Homework 1' assignment, but show me first"
+      ],
+      "notes": "Permanent: deletes the assignment together with every submission and grade attached to it. Canvas may retain a recycle-bin copy depending on admin settings."
+    },
+    {
+      "name": "update_module",
+      "category": "educator",
+      "description": "Update an existing module's settings.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "module_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Module ID to update"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "New module name"
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "required": false,
+          "description": "New position in module list"
+        },
+        {
+          "name": "unlock_at",
+          "type": "string",
+          "required": false,
+          "description": "New unlock date/time (ISO 8601), or empty string to remove"
+        },
+        {
+          "name": "require_sequential_progress",
+          "type": "boolean",
+          "required": false,
+          "description": "Students must complete items in order"
+        },
+        {
+          "name": "prerequisite_module_ids",
+          "type": "string",
+          "required": false,
+          "description": "Comma-separated prerequisite module IDs, or empty to clear"
+        },
+        {
+          "name": "published",
+          "type": "boolean",
+          "required": false,
+          "description": "Whether the module is published"
+        }
+      ],
+      "returns": "Updated module details confirming the changes",
+      "examples": [
+        "Rename module 12 to 'Week 5: Databases' and publish it"
+      ]
+    },
+    {
+      "name": "update_module_item",
+      "category": "educator",
+      "description": "Update an existing module item.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "module_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Module ID containing the item"
+        },
+        {
+          "name": "item_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Item ID to update"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "description": "New item title"
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "required": false,
+          "description": "New position within module"
+        },
+        {
+          "name": "indent",
+          "type": "integer",
+          "required": false,
+          "description": "New indentation level (0-4)"
+        },
+        {
+          "name": "external_url",
+          "type": "string",
+          "required": false,
+          "description": "New URL (ExternalUrl items only)"
+        },
+        {
+          "name": "new_tab",
+          "type": "boolean",
+          "required": false,
+          "description": "Open external links in new tab"
+        },
+        {
+          "name": "completion_requirement_type",
+          "type": "string",
+          "required": false,
+          "description": "New completion type, or empty string to remove"
+        },
+        {
+          "name": "completion_requirement_min_score",
+          "type": "integer",
+          "required": false,
+          "description": "Minimum score (for min_score type)"
+        },
+        {
+          "name": "published",
+          "type": "boolean",
+          "required": false,
+          "description": "Whether the item is published"
+        },
+        {
+          "name": "move_to_module_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Move item to a different module"
+        }
+      ],
+      "returns": "Updated module item details confirming the changes",
+      "examples": [
+        "Move item 33 to position 1 and indent it"
+      ]
+    },
+    {
+      "name": "update_page_settings",
+      "category": "educator",
+      "description": "Update settings for an existing page (without changing content).",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "page_url_or_id",
+          "type": "string",
+          "required": true,
+          "description": "Page URL slug or page ID"
+        },
+        {
+          "name": "published",
+          "type": "boolean",
+          "required": false,
+          "description": "True to publish, False to unpublish"
+        },
+        {
+          "name": "front_page",
+          "type": "boolean",
+          "required": false,
+          "description": "True to make this the course front page"
+        },
+        {
+          "name": "editing_roles",
+          "type": "string",
+          "required": false,
+          "description": "One of: teachers, students, members, public"
+        },
+        {
+          "name": "notify_of_update",
+          "type": "boolean",
+          "required": false,
+          "description": "True to notify users of the update"
+        }
+      ],
+      "returns": "Updated page settings confirming the changes",
+      "examples": [
+        "Publish the 'Office Hours' page",
+        "Make this page the course front page"
+      ]
+    },
+    {
+      "name": "upload_course_file",
+      "category": "educator",
+      "description": "Upload a file to Canvas course storage.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "file_path",
+          "type": "string",
+          "required": true,
+          "description": "Absolute path to the local file to upload"
+        },
+        {
+          "name": "folder_path",
+          "type": "string",
+          "required": false,
+          "description": "Canvas folder path (default: \"course files\" root)"
+        },
+        {
+          "name": "display_name",
+          "type": "string",
+          "required": false,
+          "description": "Override the filename shown in Canvas"
+        },
+        {
+          "name": "on_duplicate",
+          "type": "string",
+          "required": false,
+          "default": "rename",
+          "description": "\"rename\" (default) or \"overwrite\""
+        }
+      ],
+      "returns": "Uploaded file details including the Canvas file ID",
+      "examples": [
+        "Upload lecture5.pdf to the course files"
+      ],
+      "notes": "Uploads a local file to a Canvas course. The returned file ID can be used with add_module_item (item_type='File') or send_conversation (attachment_ids). Local (stdio) servers only: file_path is read from the server's filesystem, so the tool refuses the request over HTTP transport."
+    },
+    {
+      "name": "download_course_file",
+      "category": "shared",
+      "description": "Download a file from a Canvas course to the local filesystem.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "file_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas file ID"
+        },
+        {
+          "name": "save_directory",
+          "type": "string",
+          "required": false,
+          "description": "Local directory to save to (default: system temp dir, must exist)"
+        }
+      ],
+      "returns": "Local path of the downloaded file with size and content type",
+      "examples": [
+        "Download the syllabus PDF from the course files"
+      ],
+      "notes": "Use list_course_files or list_module_items to find file IDs. Local (stdio) servers only: the file is written to the server's filesystem, so the tool refuses over HTTP transport and directs callers to read_course_file. Never overwrites an existing destination."
+    },
+    {
+      "name": "get_conversation_details",
+      "category": "shared",
+      "description": "Get detailed conversation information with messages.",
+      "parameters": [
+        {
+          "name": "conversation_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Conversation ID"
+        },
+        {
+          "name": "include_messages",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include all messages"
+        }
+      ],
+      "returns": "Full conversation thread with all messages and participants",
+      "examples": [
+        "Show me the full thread of conversation 555"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "get_course_content_overview",
+      "category": "shared",
+      "description": "Get a comprehensive overview of course content including pages, modules, and syllabus.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "include_pages",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include pages information (default: True)"
+        },
+        {
+          "name": "include_modules",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include modules and their items (default: True)"
+        },
+        {
+          "name": "include_syllabus",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include syllabus content (default: True)"
+        }
+      ],
+      "returns": "Structured overview of the course's pages, modules, and syllabus",
+      "examples": [
+        "Give me an overview of everything in BADM 350"
+      ]
+    },
+    {
+      "name": "get_course_structure",
+      "category": "shared",
+      "description": "Get the full module and item structure for a course in a single call.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "include_unpublished",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include unpublished modules and items (default: True)"
+        }
+      ],
+      "returns": "Full module/item hierarchy for the course, optionally with content previews",
+      "examples": [
+        "Show the complete structure of my course"
+      ]
+    },
+    {
+      "name": "get_discussion_entry_details",
+      "category": "shared",
+      "description": "Get detailed information about a specific discussion entry including all its replies.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "topic_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Discussion topic ID"
+        },
+        {
+          "name": "entry_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Discussion entry ID"
+        },
+        {
+          "name": "include_replies",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Fetch and include replies (default: True)"
+        },
+        {
+          "name": "group_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Canvas group ID, to read a discussion inside a group space instead of the course. Discussions that students start in a group exist only there. The group must belong to the course."
+        }
+      ],
+      "returns": "Entry text plus all replies with authors and timestamps",
+      "examples": [
+        "Show me entry 42 in the Week 3 discussion, with its replies"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "get_discussion_topic_details",
+      "category": "shared",
+      "description": "Get detailed information about a specific discussion topic.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "topic_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Discussion topic ID"
+        },
+        {
+          "name": "group_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Canvas group ID, to read a discussion inside a group space instead of the course. Discussions that students start in a group exist only there. The group must belong to the course."
+        },
+        {
+          "name": "raw_dates",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Append a JSON block with the topic's dates and, for a graded discussion, its assignment's due_at, unlock_at, lock_at, updated_at and checkpoint dates exactly as Canvas returns them. No extra request."
+        }
+      ],
+      "returns": "Topic metadata and full message body; with raw_dates, also a JSON dates block",
+      "examples": [
+        "Show the details of the 'Introductions' discussion topic"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "get_discussion_with_replies",
+      "category": "shared",
+      "description": "Read every entry of a discussion in full, optionally with all replies, never cut",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "topic_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Discussion topic ID"
+        },
+        {
+          "name": "include_replies",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Fetch detailed replies for all entries (default: False)"
+        },
+        {
+          "name": "group_id",
+          "type": "string | integer",
+          "required": false,
+          "description": "Canvas group ID, to read a discussion inside a group space instead of the course. Discussions that students start in a group exist only there. The group must belong to the course."
+        }
+      ],
+      "returns": "All discussion entries with nested replies in one call",
+      "examples": [
+        "Get the whole Week 3 discussion including replies"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "get_front_page",
+      "category": "shared",
+      "description": "Get the front page content for a course.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        }
+      ],
+      "returns": "Front page title and full content body",
+      "examples": [
+        "What's on the course front page?"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "get_page_content",
+      "category": "shared",
+      "description": "Get the full content body of a specific page.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "page_url_or_id",
+          "type": "string",
+          "required": true,
+          "description": "Page URL slug or page ID"
+        }
+      ],
+      "returns": "Full HTML content body of the page",
+      "examples": [
+        "Show me the content of the 'Course Policies' page"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "get_page_details",
+      "category": "shared",
+      "description": "Get detailed information about a specific page.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "page_url_or_id",
+          "type": "string",
+          "required": true,
+          "description": "Page URL slug or page ID"
+        }
+      ],
+      "returns": "Page metadata (publication state, edit roles, timestamps) plus content",
+      "examples": [
+        "When was the syllabus page last edited, and is it published?"
+      ]
+    },
+    {
+      "name": "get_unread_count",
+      "category": "shared",
+      "description": "Get number of unread conversations.",
+      "parameters": [],
+      "returns": "Number of unread conversations",
+      "examples": [
+        "How many unread Canvas messages do I have?"
+      ]
+    },
+    {
+      "name": "list_conversations",
+      "category": "shared",
+      "description": "List conversations for the current user.",
+      "parameters": [
+        {
+          "name": "scope",
+          "type": "string",
+          "required": false,
+          "default": "unread",
+          "description": "\"unread\", \"starred\", \"sent\", \"archived\", or \"all\""
+        },
+        {
+          "name": "filter_ids",
+          "type": "array",
+          "required": false,
+          "description": "Conversation IDs to filter by"
+        },
+        {
+          "name": "filter_mode",
+          "type": "string",
+          "required": false,
+          "default": "and",
+          "description": "\"and\" or \"or\" for filter_ids"
+        },
+        {
+          "name": "include_participants",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include participant info"
+        },
+        {
+          "name": "include_all_ids",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Include all participant IDs"
+        }
+      ],
+      "returns": "One page of conversations with participants, subjects, and read state; count and returned report the page size, more_available indicates another page, and note warns when the result is incomplete",
+      "examples": [
+        "Show my Canvas inbox"
+      ]
+    },
+    {
+      "name": "list_course_files",
+      "category": "shared",
+      "description": "List files in a Canvas course with optional search.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "search_term",
+          "type": "string",
+          "required": false,
+          "description": "Filter files by name"
+        },
+        {
+          "name": "sort",
+          "type": "string",
+          "required": false,
+          "default": "updated_at",
+          "description": "Sort field: name, size, created_at, updated_at, content_type (default: updated_at)"
+        },
+        {
+          "name": "order",
+          "type": "string",
+          "required": false,
+          "default": "desc",
+          "description": "\"asc\" or \"desc\" (default: desc)"
+        }
+      ],
+      "returns": "List of course files with IDs, names, sizes, and folders",
+      "examples": [
+        "List the PDF files in this course"
+      ]
+    },
+    {
+      "name": "list_module_items",
+      "category": "shared",
+      "description": "List items within a specific module, including pages.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "module_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "The module ID"
+        },
+        {
+          "name": "include_content_details",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "Include additional content details (default: True)"
+        }
+      ],
+      "returns": "Items in the module with types, titles, and IDs",
+      "examples": [
+        "What's inside the 'Week 2' module?"
+      ]
+    },
+    {
+      "name": "list_modules",
+      "category": "shared",
+      "description": "List all modules in a course.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "include_items",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Include summary of items in each module"
+        },
+        {
+          "name": "search_term",
+          "type": "string",
+          "required": false,
+          "description": "Filter modules by name"
+        }
+      ],
+      "returns": "All modules with IDs, names, and item counts",
+      "examples": [
+        "List the modules in my course"
+      ]
+    },
+    {
+      "name": "list_pages",
+      "category": "shared",
+      "description": "List pages for a specific course.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "sort",
+          "type": "string",
+          "required": false,
+          "default": "title",
+          "description": "Sort by 'title', 'created_at', or 'updated_at'"
+        },
+        {
+          "name": "order",
+          "type": "string",
+          "required": false,
+          "default": "asc",
+          "description": "'asc' or 'desc'"
+        },
+        {
+          "name": "search_term",
+          "type": "string",
+          "required": false,
+          "description": "Filter pages containing this term"
+        },
+        {
+          "name": "published",
+          "type": "boolean",
+          "required": false,
+          "description": "Filter by published status (None for all)"
+        }
+      ],
+      "returns": "List of pages with URL slugs, titles, and publication state",
+      "examples": [
+        "List all pages in BADM 350, sorted by last update"
+      ]
+    },
+    {
+      "name": "mark_conversations_read",
+      "category": "shared",
+      "description": "Mark multiple conversations as read.",
+      "parameters": [
+        {
+          "name": "conversation_ids",
+          "type": "array",
+          "required": true,
+          "description": "List of conversation IDs to mark as read"
+        }
+      ],
+      "returns": "Per-conversation success/failure summary",
+      "examples": [
+        "Mark conversations 12, 13, and 14 as read"
+      ]
+    },
+    {
+      "name": "post_discussion_entry",
+      "category": "shared",
+      "description": "Post a new top-level entry to a discussion topic.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "topic_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Discussion topic ID"
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "description": "Entry message content"
+        }
+      ],
+      "returns": "Created entry details including ID",
+      "examples": [
+        "Post my response to the Week 3 discussion"
+      ]
+    },
+    {
+      "name": "read_course_file",
+      "category": "shared",
+      "description": "Read a file from a Canvas course and return its content as base64.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "file_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas file ID"
+        },
+        {
+          "name": "max_size_mb",
+          "type": "number",
+          "required": false,
+          "default": 25.0,
+          "description": "Maximum file size in MB to read (default: 25). Clamped server-side to\nREAD_FILE_MAX_SIZE_MB (default 100). Files larger than the effective limit are\nrejected to avoid excessive memory usage."
+        }
+      ],
+      "returns": "File content as base64 with name, size, and content type",
+      "examples": [
+        "Read the rubric spreadsheet from course files"
+      ],
+      "notes": "Unlike download_course_file which saves to the server's local filesystem, this tool returns the file content directly in the response. This is useful when the MCP server runs on a different machine than the client. Use list_course_files or list_module_items to find file IDs."
+    },
+    {
+      "name": "reply_to_discussion_entry",
+      "category": "shared",
+      "description": "Reply to a student's discussion entry/comment.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "topic_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Discussion topic ID"
+        },
+        {
+          "name": "entry_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Discussion entry ID to reply to"
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "description": "Reply message content"
+        }
+      ],
+      "returns": "Created reply details including ID",
+      "examples": [
+        "Reply to Alice's discussion post with this feedback"
+      ]
+    },
+    {
+      "name": "list_my_groups",
+      "category": "student",
+      "description": "List the Canvas groups you belong to, with course, course ID, group category ID and member count. Read a group's discussions and announcements with list_discussion_topics and get_discussion_with_replies using the course ID and group_id printed here",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": false,
+          "description": "Only show your groups in this course (course code or Canvas ID)"
+        }
+      ],
+      "returns": "Each group's name, ID, course code, course ID, group category ID, member count and description, plus how to read its discussions with the shared discussion tools",
+      "examples": [
+        "What groups am I in?",
+        "Which project team am I on in BADM 350?"
+      ]
+    },
+    {
+      "name": "get_group_members",
+      "category": "student",
+      "description": "List the members of one of your groups. Only groups you belong to; never shows emails",
+      "parameters": [
+        {
+          "name": "group_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas group ID from list_my_groups (must be a group you belong to)"
+        }
+      ],
+      "returns": "Member names (pseudonymized when data anonymization is on) and Canvas user IDs",
+      "examples": [
+        "Who is in my project group?"
+      ]
+    },
+    {
+      "name": "list_group_files",
+      "category": "student",
+      "description": "List the files stored in one of your groups",
+      "parameters": [
+        {
+          "name": "group_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas group ID from list_my_groups (must be a group you belong to)"
+        },
+        {
+          "name": "search_term",
+          "type": "string",
+          "required": false,
+          "description": "Only files whose name contains this text (2+ characters)"
+        },
+        {
+          "name": "sort",
+          "type": "string",
+          "required": false,
+          "default": "updated_at",
+          "description": "name, size, created_at, updated_at or content_type"
+        },
+        {
+          "name": "order",
+          "type": "string",
+          "required": false,
+          "default": "desc",
+          "description": "asc or desc"
+        }
+      ],
+      "returns": "File IDs, names, sizes, content types and update dates",
+      "examples": [
+        "What files has my group uploaded?"
+      ]
+    },
+    {
+      "name": "list_calendar_events",
+      "category": "student",
+      "description": "List your Canvas calendar across active courses, your personal calendar and your groups: events and assignment due dates",
+      "parameters": [
+        {
+          "name": "start_date",
+          "type": "string",
+          "required": false,
+          "description": "Window start, YYYY-MM-DD or ISO 8601 with an offset (default: today)"
+        },
+        {
+          "name": "end_date",
+          "type": "string",
+          "required": false,
+          "description": "Window end, inclusive (default: start + days); the window may span at most 366 days"
+        },
+        {
+          "name": "days",
+          "type": "integer",
+          "required": false,
+          "default": 14,
+          "description": "Look-ahead when end_date is omitted (max 366)"
+        },
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": false,
+          "description": "Only this course's calendar"
+        },
+        {
+          "name": "event_type",
+          "type": "string",
+          "required": false,
+          "default": "all",
+          "description": "event, assignment, or all"
+        },
+        {
+          "name": "include_descriptions",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Include event descriptions"
+        }
+      ],
+      "returns": "Entries in date order with time, calendar, location and event/assignment ID",
+      "examples": [
+        "What's on my calendar this week?",
+        "When is the CS 161 midterm?"
+      ],
+      "notes": "Context codes are sent 10 per request (the Canvas limit). Use get_my_upcoming_assignments for submission status."
+    },
+    {
+      "name": "get_calendar_event",
+      "category": "student",
+      "description": "Get one calendar event in full, including its description",
+      "parameters": [
+        {
+          "name": "event_id",
+          "type": "string",
+          "required": true,
+          "description": "Numeric calendar event ID"
+        }
+      ],
+      "returns": "Title, time, calendar, location, address, description, series/appointment flags, Canvas link",
+      "examples": [
+        "Where is the review session?"
+      ],
+      "notes": "Never cut; declares anthropic/maxResultSizeChars=500000 so Claude Code delivers the whole result."
+    },
+    {
+      "name": "list_planner_notes",
+      "category": "student",
+      "description": "List your own planner notes (personal to-do items) in a date window",
+      "parameters": [
+        {
+          "name": "start_date",
+          "type": "string",
+          "required": false,
+          "description": "Window start, YYYY-MM-DD or ISO 8601 with an offset (default: today)"
+        },
+        {
+          "name": "end_date",
+          "type": "string",
+          "required": false,
+          "description": "Window end, inclusive (default: start + days); the window may span at most 366 days"
+        },
+        {
+          "name": "days",
+          "type": "integer",
+          "required": false,
+          "default": 14,
+          "description": "Look-ahead when end_date is omitted (max 366)"
+        },
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": false,
+          "description": "Only notes linked to this course"
+        }
+      ],
+      "returns": "Notes in date order with title, to-do date, course, note ID and details",
+      "examples": [
+        "What's on my to-do list for next week?"
+      ]
+    },
+    {
+      "name": "create_planner_note",
+      "category": "student_write",
+      "description": "Add a note to your own Canvas planner",
+      "parameters": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Note title"
+        },
+        {
+          "name": "todo_date",
+          "type": "string",
+          "required": true,
+          "description": "Day it shows on, YYYY-MM-DD"
+        },
+        {
+          "name": "details",
+          "type": "string",
+          "required": false,
+          "description": "Note text"
+        },
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": false,
+          "description": "Course to file it under"
+        },
+        {
+          "name": "linked_object_type",
+          "type": "string",
+          "required": false,
+          "description": "announcement, assignment, discussion_topic, wiki_page or quiz"
+        },
+        {
+          "name": "linked_object_id",
+          "type": "string",
+          "required": false,
+          "description": "ID of that object in the same course"
+        }
+      ],
+      "returns": "The created note",
+      "examples": [
+        "Remind me to start the lab report on Friday"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS. A course-linked note is subject to that course's agent policy."
+    },
+    {
+      "name": "update_planner_note",
+      "category": "student_write",
+      "description": "Change one of your own planner notes. Requires a confirmation token from a preview call.",
+      "parameters": [
+        {
+          "name": "note_id",
+          "type": "string",
+          "required": true,
+          "description": "Planner note ID"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "description": "New title"
+        },
+        {
+          "name": "details",
+          "type": "string",
+          "required": false,
+          "description": "New note text (replaces the old text)"
+        },
+        {
+          "name": "todo_date",
+          "type": "string",
+          "required": false,
+          "description": "New day, YYYY-MM-DD"
+        },
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": false,
+          "description": "Move the note to this course"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview"
+        }
+      ],
+      "returns": "A preview plus token on the first call; the updated note on the second",
+      "examples": [
+        "Move my 'read chapter 4' note to Thursday"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS. Refuses notes that are not the caller's."
+    },
+    {
+      "name": "delete_planner_note",
+      "category": "student_write",
+      "description": "Delete one of your own planner notes. Requires a confirmation token from a preview call.",
+      "parameters": [
+        {
+          "name": "note_id",
+          "type": "string",
+          "required": true,
+          "description": "Planner note ID"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview"
+        }
+      ],
+      "returns": "A preview plus token on the first call; confirmation on the second",
+      "examples": [
+        "Delete my note about the cancelled lab"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS. Refuses notes that are not the caller's."
+    },
+    {
+      "name": "mark_planner_item_complete",
+      "category": "student_write",
+      "description": "Tick or untick an item in your own Canvas planner",
+      "parameters": [
+        {
+          "name": "plannable_type",
+          "type": "string",
+          "required": true,
+          "description": "assignment, quiz, discussion_topic, announcement, wiki_page, planner_note or calendar_event"
+        },
+        {
+          "name": "plannable_id",
+          "type": "string",
+          "required": true,
+          "description": "The item's Canvas ID"
+        },
+        {
+          "name": "course_identifier",
+          "type": "string",
+          "required": false,
+          "description": "The item's course (required for course content)"
+        },
+        {
+          "name": "complete",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "True to mark complete, False to unmark"
+        }
+      ],
+      "returns": "Confirmation of the new planner state",
+      "examples": [
+        "Check off the week 5 reading in my planner"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS. Does not submit anything, but for course content Canvas syncs the item's \"Mark as done\" module requirement (unmarking reverses it), so mark_module_item_done must also be enabled and allowed by the course policy."
+    },
+    {
+      "name": "create_personal_calendar_event",
+      "category": "student_write",
+      "description": "Add an event to your own personal Canvas calendar",
+      "parameters": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Event title"
+        },
+        {
+          "name": "start_at",
+          "type": "string",
+          "required": true,
+          "description": "Start, ISO 8601 (or YYYY-MM-DD with all_day)"
+        },
+        {
+          "name": "end_at",
+          "type": "string",
+          "required": false,
+          "description": "End, same format"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "description": "Description"
+        },
+        {
+          "name": "location_name",
+          "type": "string",
+          "required": false,
+          "description": "Location"
+        },
+        {
+          "name": "all_day",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "All-day event"
+        }
+      ],
+      "returns": "The created event",
+      "examples": [
+        "Put a study session on my calendar Tuesday 3-5pm"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS. Always the caller's own user calendar; never a course or group calendar."
+    },
+    {
+      "name": "delete_personal_calendar_event",
+      "category": "student_write",
+      "description": "Delete an event from your own personal Canvas calendar. Requires a confirmation token from a preview call.",
+      "parameters": [
+        {
+          "name": "event_id",
+          "type": "string",
+          "required": true,
+          "description": "Calendar event ID"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview"
+        }
+      ],
+      "returns": "A preview plus token on the first call; confirmation on the second",
+      "examples": [
+        "Remove the study session I added for Tuesday"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS. Course, group and appointment-reservation events are refused; only one occurrence of a repeating event is deleted."
+    },
+    {
+      "name": "find_message_recipients",
+      "category": "student",
+      "description": "Find people you can message in a course (instructors, TAs, classmates) and their Canvas user IDs, for use with send_message. Individual people only.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID"
+        },
+        {
+          "name": "search",
+          "type": "string",
+          "required": false,
+          "description": "Part of a name to match; omit to list everyone you can message. While data anonymization is on, a search matches course staff only"
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": false,
+          "default": "any",
+          "description": "\"any\", \"staff\" (teachers, TAs, designers), \"teacher\", \"ta\", or \"student\""
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "default": 25,
+          "description": "Maximum matches to return (1-50)"
+        }
+      ],
+      "returns": "Matching people with user_id, fenced display name, and their roles in the course. While data anonymization is on, only course staff are named; everyone else gets the same Student_<hash> pseudonym used elsewhere, and a name search returns course staff only (Canvas matches it against real names). Reads at most a few pages, and says when more may match",
+      "examples": [
+        "What is my professor's user ID in CS 101?",
+        "Find the TAs for this course"
+      ]
+    },
+    {
+      "name": "send_message",
+      "category": "student_write",
+      "description": "Send a new Canvas Inbox message from you to 1-5 specific people in a course. Two-step: preview + confirmation_token, then confirm with identical arguments.",
+      "parameters": [
+        {
+          "name": "course_identifier",
+          "type": "string | integer",
+          "required": true,
+          "description": "Course code or Canvas ID the message is about"
+        },
+        {
+          "name": "recipient_ids",
+          "type": "array",
+          "required": true,
+          "description": "1-5 numeric Canvas user IDs from find_message_recipients; course_/section_/group_ addresses are refused"
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": true,
+          "description": "Message subject (max 255 chars)"
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": true,
+          "description": "Message text (max 10,000 chars)"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview"
+        }
+      ],
+      "returns": "Without a token: a preview naming each recipient and their course role, plus a confirmation_token (nothing sent). With a valid token: the ID of the one new conversation shared by all recipients",
+      "examples": [
+        "Email my CS 101 professor asking about the midterm regrade",
+        "Yes, send it"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS (and ALLOWED_WRITE_TOOLS, where set, allows it); an instructor can block it per course. No attachments, no bulk or course-wide messages. Every recipient must be someone Canvas lets you message in that course."
+    },
+    {
+      "name": "reply_to_conversation",
+      "category": "student_write",
+      "description": "Reply to a Canvas Inbox conversation you are already part of. Reaches only the people already in it (at most 5). Two-step: preview + confirmation_token, then confirm.",
+      "parameters": [
+        {
+          "name": "conversation_id",
+          "type": "string | integer",
+          "required": true,
+          "description": "Canvas conversation ID (from list_conversations)"
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": true,
+          "description": "Reply text (max 10,000 chars)"
+        },
+        {
+          "name": "confirmation_token",
+          "type": "string",
+          "required": false,
+          "description": "Token from the preview call; omit to preview"
+        }
+      ],
+      "returns": "Without a token: a preview of who the reply reaches plus a confirmation_token (nothing sent). With a valid token: the new message ID",
+      "examples": [
+        "Reply to my TA saying thanks, I'll come to office hours",
+        "Yes, send the reply"
+      ],
+      "notes": "Disabled unless the operator lists it in STUDENT_WRITE_TOOLS; the conversation's course policy applies. Previewing never marks the conversation read. Refused for conversations with more than 5 other people."
+    }
+  ],
+  "workflows": [
+    {
+      "name": "student_weekly_planning",
+      "description": "Check upcoming work and status",
+      "steps": [
+        "get_my_upcoming_assignments(days=7)",
+        "get_my_submission_status()",
+        "get_my_peer_reviews_todo()"
+      ]
+    },
+    {
+      "name": "educator_assignment_review",
+      "description": "Review submissions and send reminders",
+      "steps": [
+        "list_submissions(course_id, assignment_id)",
+        "get_assignment_analytics(course_id, assignment_id)",
+        "send_conversation(course_id, missing_students, subject, reminder)"
+      ]
+    },
+    {
+      "name": "bulk_grading_workflow",
+      "description": "Efficiently grade many submissions",
+      "steps": [
+        "get_rubric(course_id, rubric_id=...)",
+        "bulk_grade_submissions(course_id, assignment_id, grades, dry_run=true)",
+        "bulk_grade_submissions(course_id, assignment_id, grades, dry_run=false)"
+      ]
+    },
+    {
+      "name": "token_efficient_bulk_operation",
+      "description": "Use code execution for large datasets",
+      "steps": [
+        "search_canvas_tools('bulk', 'signatures')",
+        "execute_typescript(code_with_bulkGrade)"
+      ]
+    }
+  ],
+  "constraints": {
+    "rate_limits": {
+      "canvas_api": "~700 requests per 10 minutes (varies by institution)",
+      "recommendation": "Use max_concurrent=5 and rate_limit_delay=1.0 (seconds) for bulk ops"
+    },
+    "permissions": {
+      "student": "Own data only via /self endpoints",
+      "ta": "Students in assigned sections",
+      "instructor": "All students in their courses"
+    },
+    "cannot_do": [
+      "Create or delete courses",
+      "Modify course settings",
+      "Access data outside user permissions",
+      "Bypass Canvas API rate limits"
+    ]
+  }
+}

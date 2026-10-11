@@ -1,0 +1,791 @@
+"""Module-related MCP tools for Canvas API.
+
+Provides tools for creating, updating, and managing Canvas course modules
+and module items. Modules are the primary content organization system in Canvas.
+"""
+
+
+from typing import Any
+
+from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
+
+from ..core.cache import get_course_code, get_course_id
+from ..core.client import fetch_all_paginated_results, make_canvas_request
+from ..core.dates import format_date, parse_date
+from ..core.untrusted_content import (
+    FENCE_LEAK_ERROR,
+    contains_fence_markers,
+    fence_untrusted_inline,
+)
+from ..core.validation import validate_params
+from ..core.write_confirmation import (
+    ConfirmationGuard,
+    preview_with_token,
+    redeem_confirmation,
+)
+
+_DELETE_MODULE_GUARD = ConfirmationGuard(nothing_done="Nothing was deleted.")
+_DELETE_MODULE_ITEM_GUARD = ConfirmationGuard(nothing_done="Nothing was deleted.")
+
+
+def register_shared_module_tools(mcp: FastMCP) -> None:
+    """Register module tools accessible to both students and educators."""
+
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True))
+    @validate_params
+    async def list_modules(
+        course_identifier: str | int,
+        include_items: bool = False,
+        search_term: str | None = None
+    ) -> str:
+        """List all modules in a course.
+
+        Args:
+            course_identifier: Course code or Canvas ID
+            include_items: Include summary of items in each module
+            search_term: Filter modules by name
+        """
+        course_id = await get_course_id(course_identifier)
+
+        params: dict[str, Any] = {"per_page": 100}
+        if include_items:
+            params["include[]"] = ["items"]
+        if search_term:
+            params["search_term"] = search_term
+
+        modules = await fetch_all_paginated_results(
+            f"/courses/{course_id}/modules", params
+        )
+
+        if isinstance(modules, dict) and "error" in modules:
+            return f"Error fetching modules: {modules['error']}"
+
+        if not modules:
+            return "No modules found in course."
+
+        course_display = await get_course_code(course_id) or course_identifier
+        result = f"Modules in {course_display}:\n\n"
+
+        for module in modules:
+            module_id = module.get("id")
+            name = module.get("name", "Unnamed")
+            position = module.get("position", 0)
+            state = module.get("state", "unknown")
+            published = module.get("published", False)
+            items_count = module.get("items_count", 0)
+            unlock_at = module.get("unlock_at")
+            require_sequential = module.get("require_sequential_progress", False)
+            prerequisite_ids = module.get("prerequisite_module_ids", [])
+
+            # Module names and item titles are instructor-authored (issue 239).
+            result += f"**{fence_untrusted_inline(name, 'module name')}**\n"
+            result += f"  ID: {module_id}\n"
+            result += f"  Position: {position}\n"
+            result += f"  Status: {state} | Published: {'Yes' if published else 'No'}\n"
+            result += f"  Items: {items_count}\n"
+
+            if unlock_at:
+                result += f"  Unlocks: {format_date(unlock_at)}\n"
+            if require_sequential:
+                result += "  Sequential Progress: Required\n"
+            if prerequisite_ids:
+                result += f"  Prerequisites: {prerequisite_ids}\n"
+
+            # Include item summary if requested
+            if include_items and "items" in module:
+                items = module.get("items", [])
+                if items:
+                    result += "  Items:\n"
+                    for item in items[:5]:  # Show first 5 items
+                        item_title = item.get("title", "Untitled")
+                        item_type = item.get("type", "Unknown")
+                        result += f"    - {fence_untrusted_inline(item_title, 'module item title')} ({item_type})\n"
+                    if len(items) > 5:
+                        result += f"    ... and {len(items) - 5} more items\n"
+
+            result += "\n"
+
+        return result
+
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True))
+    @validate_params
+    async def get_course_structure(
+        course_identifier: str | int,
+        include_unpublished: bool = True
+    ) -> str:
+        """Get the full module and item structure for a course in a single call.
+
+        Args:
+            course_identifier: Course code or Canvas ID
+            include_unpublished: Include unpublished modules and items (default: True)
+        """
+        import json
+
+        course_id = await get_course_id(course_identifier)
+
+        params = {"per_page": 100, "include[]": ["items"]}
+
+        modules = await fetch_all_paginated_results(
+            f"/courses/{course_id}/modules", params
+        )
+
+        if isinstance(modules, dict) and "error" in modules:
+            return json.dumps({"error": f"Error fetching course structure: {modules['error']}"})
+
+        # Build structured output
+        structured_modules = []
+        total_items = 0
+        unpublished_modules = 0
+        unpublished_items = 0
+        empty_modules = 0
+        item_types: dict[str, int] = {}
+
+        for module in modules:
+            module_published = module.get("published", False)
+
+            # Skip unpublished modules if not requested
+            if not include_unpublished and not module_published:
+                continue
+
+            if not module_published:
+                unpublished_modules += 1
+
+            raw_items = module.get("items", [])
+            filtered_items = []
+
+            for item in raw_items:
+                item_published = item.get("published", True)
+
+                # Skip unpublished items if not requested
+                if not include_unpublished and not item_published:
+                    continue
+
+                if not item_published:
+                    unpublished_items += 1
+
+                item_type = item.get("type", "Unknown")
+                item_types[item_type] = item_types.get(item_type, 0) + 1
+                total_items += 1
+
+                filtered_items.append({
+                    "id": item.get("id"),
+                    "type": item_type,
+                    # Author-controlled titles fenced even in the JSON payload
+                    # (issue 239).
+                    "title": fence_untrusted_inline(item.get("title", "Untitled"), "module item title"),
+                    "published": item_published,
+                    "position": item.get("position"),
+                    "content_id": item.get("content_id"),
+                    "page_url": item.get("page_url"),
+                    "external_url": item.get("external_url"),
+                    "indent": item.get("indent", 0),
+                })
+
+            # Count empty modules (published modules with 0 items after filtering)
+            if module_published and len(filtered_items) == 0:
+                empty_modules += 1
+
+            structured_modules.append({
+                "id": module.get("id"),
+                "name": fence_untrusted_inline(module.get("name", "Unnamed"), "module name"),
+                "position": module.get("position"),
+                "published": module_published,
+                "unlock_at": format_date(module.get("unlock_at")) if module.get("unlock_at") else None,
+                "require_sequential_progress": module.get("require_sequential_progress", False),
+                "prerequisite_module_ids": module.get("prerequisite_module_ids", []),
+                "items_count": len(filtered_items),
+                "items": filtered_items,
+            })
+
+        result = {
+            "course_id": str(course_id),
+            "modules": structured_modules,
+            "summary": {
+                "total_modules": len(structured_modules),
+                "total_items": total_items,
+                "unpublished_modules": unpublished_modules,
+                "unpublished_items": unpublished_items,
+                "empty_modules": empty_modules,
+                "item_types": item_types,
+            },
+        }
+
+        return json.dumps(result)
+
+
+def register_educator_module_tools(mcp: FastMCP) -> None:
+    """Register educator-only module management tools."""
+
+    @mcp.tool(annotations=ToolAnnotations(destructive_hint=False, idempotent_hint=False))
+    @validate_params
+    async def create_module(
+        course_identifier: str | int,
+        name: str,
+        position: int | None = None,
+        unlock_at: str | None = None,
+        require_sequential_progress: bool = False,
+        prerequisite_module_ids: str | None = None,
+        published: bool = True
+    ) -> str:
+        """Create a module in a course.
+
+        Modules are published by default, so the module (and any published
+        items later added to it) is visible to students on creation, subject to
+        unlock_at and prerequisites; pass published=False to build it as a draft.
+
+        Args:
+            course_identifier: Course code or Canvas ID
+            name: Module name
+            position: Position in module list (1-indexed)
+            unlock_at: Unlock date/time (ISO 8601)
+            require_sequential_progress: Students must complete items in order
+            prerequisite_module_ids: Comma-separated module IDs that must be completed first
+            published: Whether the module is published (default: True)
+        """
+        # Backstop for issue 239: never publish our provenance markers.
+        if contains_fence_markers(name):
+            return FENCE_LEAK_ERROR
+
+        course_id = await get_course_id(course_identifier)
+
+        # Build module parameters
+        module_params: dict[str, Any] = {
+            "module[name]": name,
+            "module[published]": str(published).lower()
+        }
+
+        if position is not None:
+            module_params["module[position]"] = position
+
+        if unlock_at:
+            parsed_date = parse_date(unlock_at)
+            if parsed_date:
+                module_params["module[unlock_at]"] = parsed_date.isoformat()
+
+        if require_sequential_progress:
+            module_params["module[require_sequential_progress]"] = "true"
+
+        # Handle prerequisite module IDs - need list of tuples for httpx form data
+        prereq_tuples = []
+        if prerequisite_module_ids:
+            # Parse comma-separated IDs
+            prereq_ids = [id.strip() for id in prerequisite_module_ids.split(",")]
+            prereq_tuples = [("module[prerequisite_module_ids][]", prereq_id) for prereq_id in prereq_ids]
+
+        # Convert module_params dict to list of tuples and append prereq tuples
+        form_data = list(module_params.items()) + prereq_tuples
+
+        response = await make_canvas_request(
+            "post",
+            f"/courses/{course_id}/modules",
+            data=form_data,
+            use_form_data=True
+        )
+
+        if "error" in response:
+            return f"Error creating module: {response['error']}"
+
+        # Format success response
+        module_id = response.get("id")
+        module_name = response.get("name")
+        module_position = response.get("position")
+        module_published = response.get("published", False)
+
+        course_display = await get_course_code(course_id) or course_identifier
+        result = "✅ Module created successfully!\n\n"
+        result += f"**{module_name}**\n"
+        result += f"  Course: {course_display}\n"
+        result += f"  Module ID: {module_id}\n"
+        result += f"  Position: {module_position}\n"
+        result += f"  Published: {'Yes' if module_published else 'No'}\n"
+
+        if unlock_at:
+            result += f"  Unlocks: {format_date(response.get('unlock_at'))}\n"
+        if require_sequential_progress:
+            result += "  Sequential Progress: Required\n"
+
+        return result
+
+    @mcp.tool(annotations=ToolAnnotations(destructive_hint=True, idempotent_hint=True))
+    @validate_params
+    async def update_module(
+        course_identifier: str | int,
+        module_id: str | int,
+        name: str | None = None,
+        position: int | None = None,
+        unlock_at: str | None = None,
+        require_sequential_progress: bool | None = None,
+        prerequisite_module_ids: str | None = None,
+        published: bool | None = None
+    ) -> str:
+        """Update an existing module's settings.
+
+        Args:
+            course_identifier: Course code or Canvas ID
+            module_id: Module ID to update
+            name: New module name
+            position: New position in module list
+            unlock_at: New unlock date/time (ISO 8601), or empty string to remove
+            require_sequential_progress: Students must complete items in order
+            prerequisite_module_ids: Comma-separated prerequisite module IDs, or empty to clear
+            published: Whether the module is published
+        """
+        # Backstop for issue 239: never publish our provenance markers.
+        if name is not None and contains_fence_markers(name):
+            return FENCE_LEAK_ERROR
+
+        course_id = await get_course_id(course_identifier)
+
+        # Build update parameters (only include changed fields)
+        module_params: dict[str, Any] = {}
+
+        if name is not None:
+            module_params["module[name]"] = name
+
+        if position is not None:
+            module_params["module[position]"] = position
+
+        if unlock_at is not None:
+            if unlock_at == "":
+                module_params["module[unlock_at]"] = ""
+            else:
+                parsed_date = parse_date(unlock_at)
+                if parsed_date:
+                    module_params["module[unlock_at]"] = parsed_date.isoformat()
+
+        if require_sequential_progress is not None:
+            module_params["module[require_sequential_progress]"] = str(require_sequential_progress).lower()
+
+        # Handle prerequisite module IDs - need list of tuples for httpx form data
+        prereq_tuples = []
+        if prerequisite_module_ids is not None:
+            if prerequisite_module_ids == "":
+                module_params["module[prerequisite_module_ids][]"] = ""
+            else:
+                prereq_ids = [id.strip() for id in prerequisite_module_ids.split(",")]
+                prereq_tuples = [("module[prerequisite_module_ids][]", prereq_id) for prereq_id in prereq_ids]
+
+        if published is not None:
+            module_params["module[published]"] = str(published).lower()
+
+        if not module_params and not prereq_tuples:
+            return "No changes specified. Please provide at least one field to update."
+
+        # Convert module_params dict to list of tuples and append prereq tuples
+        form_data = list(module_params.items()) + prereq_tuples
+
+        response = await make_canvas_request(
+            "put",
+            f"/courses/{course_id}/modules/{module_id}",
+            data=form_data,
+            use_form_data=True
+        )
+
+        if "error" in response:
+            return f"Error updating module: {response['error']}"
+
+        # Format success response
+        module_name = response.get("name")
+        module_position = response.get("position")
+        module_published = response.get("published", False)
+
+        course_display = await get_course_code(course_id) or course_identifier
+        result = "✅ Module updated successfully!\n\n"
+        result += f"**{module_name}**\n"
+        result += f"  Course: {course_display}\n"
+        result += f"  Module ID: {module_id}\n"
+        result += f"  Position: {module_position}\n"
+        result += f"  Published: {'Yes' if module_published else 'No'}\n"
+
+        if response.get("unlock_at"):
+            result += f"  Unlocks: {format_date(response.get('unlock_at'))}\n"
+        if response.get("require_sequential_progress"):
+            result += "  Sequential Progress: Required\n"
+
+        return result
+
+    @mcp.tool(annotations=ToolAnnotations(destructive_hint=True, idempotent_hint=True))
+    @validate_params
+    async def delete_module(
+        course_identifier: str | int,
+        module_id: str | int,
+        confirmation_token: str | None = None
+    ) -> str:
+        """Delete a module. Two-step: preview first, then confirm with the token.
+
+        Permanently removes the module and its item links. The linked content
+        (pages, assignments, files, etc.) is not deleted and stays in the course.
+
+        Args:
+            course_identifier: Course code or Canvas ID
+            module_id: Module ID to delete
+            confirmation_token: Token from the preview call; omit to preview
+        """
+        course_id = await get_course_id(course_identifier)
+
+        module_response = await make_canvas_request(
+            "get", f"/courses/{course_id}/modules/{module_id}"
+        )
+        if "error" in module_response:
+            return f"Error fetching module details: {module_response['error']}"
+        module_name = module_response.get("name", "Unknown")
+        items_count = module_response.get("items_count", 0)
+        shown_name = fence_untrusted_inline(module_name, "module name")
+
+        course_display = await get_course_code(course_id) or course_identifier
+        fingerprint = _DELETE_MODULE_GUARD.fingerprint(
+            "delete_module", str(course_id), str(module_id), module_name, str(items_count)
+        )
+        if not confirmation_token:
+            preview = (
+                f"Would delete module **{shown_name}** from course {course_display}\n"
+                f"  Module ID: {module_id}\n"
+                f"  Items affected: {items_count} (items unlinked, content preserved)"
+            )
+            return preview_with_token(_DELETE_MODULE_GUARD, fingerprint, "delete_module", preview)
+        error = redeem_confirmation(_DELETE_MODULE_GUARD, confirmation_token, fingerprint)
+        if error:
+            return error
+
+        response = await make_canvas_request(
+            "delete", f"/courses/{course_id}/modules/{module_id}"
+        )
+        if isinstance(response, dict) and "error" in response:
+            return f"Error deleting module: {response['error']}"
+
+        result = "✅ Module deleted successfully!\n\n"
+        result += f"  Deleted: **{shown_name}**\n"
+        result += f"  Course: {course_display}\n"
+        result += f"  Module ID: {module_id}\n"
+        result += f"  Items affected: {items_count} (items unlinked, content preserved)\n"
+        return result
+
+    @mcp.tool(annotations=ToolAnnotations(destructive_hint=False, idempotent_hint=False))
+    @validate_params
+    async def add_module_item(
+        course_identifier: str | int,
+        module_id: str | int,
+        item_type: str,
+        content_id: str | int | None = None,
+        title: str | None = None,
+        position: int | None = None,
+        indent: int | None = None,
+        page_url: str | None = None,
+        external_url: str | None = None,
+        new_tab: bool = False,
+        completion_requirement_type: str | None = None,
+        completion_requirement_min_score: int | None = None
+    ) -> str:
+        """Add an item to a module.
+
+        Required fields depend on item_type: content_id for File, Discussion,
+        Assignment, Quiz, and ExternalTool; page_url for Page; title for
+        SubHeader and ExternalUrl.
+
+        Args:
+            course_identifier: Course code or Canvas ID
+            module_id: Target module ID
+            item_type: One of: File, Page, Discussion, Assignment, Quiz, SubHeader, ExternalUrl, ExternalTool
+            content_id: Canvas ID of the content (required for File, Discussion, Assignment, Quiz, ExternalTool)
+            title: Item title (required for SubHeader, ExternalUrl; optional for others)
+            position: Position within module (1-indexed)
+            indent: Indentation level (0-4)
+            page_url: URL slug of the page (required for Page type)
+            external_url: URL for ExternalUrl items
+            new_tab: Open external links in new tab (default: False)
+            completion_requirement_type: One of: must_view, must_submit, must_contribute, min_score, must_mark_done
+            completion_requirement_min_score: Minimum score (only for min_score type)
+        """
+        # Backstop for issue 239: never publish our provenance markers.
+        if title is not None and contains_fence_markers(title):
+            return FENCE_LEAK_ERROR
+
+        course_id = await get_course_id(course_identifier)
+
+        # Validate item type
+        valid_types = ["File", "Page", "Discussion", "Assignment", "Quiz",
+                      "SubHeader", "ExternalUrl", "ExternalTool"]
+        if item_type not in valid_types:
+            return f"Invalid item_type '{item_type}'. Must be one of: {', '.join(valid_types)}"
+
+        # Build item parameters
+        item_params: dict[str, Any] = {
+            "module_item[type]": item_type
+        }
+
+        # Handle content_id requirement
+        types_requiring_content_id = ["File", "Discussion", "Assignment", "Quiz", "ExternalTool"]
+        if item_type in types_requiring_content_id:
+            if content_id is None:
+                return f"content_id is required for {item_type} items"
+            item_params["module_item[content_id]"] = content_id
+
+        # Handle Page type
+        if item_type == "Page":
+            if page_url is None:
+                return "page_url is required for Page items (e.g., 'my-page-title')"
+            item_params["module_item[page_url]"] = page_url
+
+        # Handle ExternalUrl type
+        if item_type == "ExternalUrl":
+            if external_url is None:
+                return "external_url is required for ExternalUrl items"
+            if title is None:
+                return "title is required for ExternalUrl items"
+            item_params["module_item[external_url]"] = external_url
+
+        # Handle SubHeader type
+        if item_type == "SubHeader":
+            if title is None:
+                return "title is required for SubHeader items"
+
+        # Optional parameters
+        if title is not None:
+            item_params["module_item[title]"] = title
+
+        if position is not None:
+            item_params["module_item[position]"] = position
+
+        if indent is not None:
+            if indent < 0 or indent > 4:
+                return "indent must be between 0 and 4"
+            item_params["module_item[indent]"] = indent
+
+        if new_tab:
+            item_params["module_item[new_tab]"] = "true"
+
+        # Completion requirements
+        if completion_requirement_type:
+            valid_completion_types = ["must_view", "must_submit", "must_contribute",
+                                     "min_score", "must_mark_done"]
+            if completion_requirement_type not in valid_completion_types:
+                return f"Invalid completion_requirement_type. Must be one of: {', '.join(valid_completion_types)}"
+
+            item_params["module_item[completion_requirement][type]"] = completion_requirement_type
+
+            if completion_requirement_type == "min_score":
+                if completion_requirement_min_score is None:
+                    return "completion_requirement_min_score is required when type is 'min_score'"
+                item_params["module_item[completion_requirement][min_score]"] = completion_requirement_min_score
+
+        response = await make_canvas_request(
+            "post",
+            f"/courses/{course_id}/modules/{module_id}/items",
+            data=item_params,
+            use_form_data=True
+        )
+
+        if "error" in response:
+            return f"Error adding module item: {response['error']}"
+
+        # Format success response
+        item_id = response.get("id")
+        item_title = response.get("title", title or "Untitled")
+        item_position = response.get("position")
+        item_indent = response.get("indent", 0)
+
+        course_display = await get_course_code(course_id) or course_identifier
+        result = "✅ Module item added successfully!\n\n"
+        result += f"**{item_title}**\n"
+        result += f"  Course: {course_display}\n"
+        result += f"  Module ID: {module_id}\n"
+        result += f"  Item ID: {item_id}\n"
+        result += f"  Type: {item_type}\n"
+        result += f"  Position: {item_position}\n"
+
+        if item_indent > 0:
+            result += f"  Indent: {item_indent}\n"
+
+        if content_id:
+            result += f"  Content ID: {content_id}\n"
+
+        if external_url:
+            result += f"  URL: {external_url}\n"
+            result += f"  Opens in new tab: {'Yes' if new_tab else 'No'}\n"
+
+        if completion_requirement_type:
+            result += f"  Completion: {completion_requirement_type}"
+            if completion_requirement_min_score:
+                result += f" (min score: {completion_requirement_min_score})"
+            result += "\n"
+
+        return result
+
+    @mcp.tool(annotations=ToolAnnotations(destructive_hint=True, idempotent_hint=True))
+    @validate_params
+    async def update_module_item(
+        course_identifier: str | int,
+        module_id: str | int,
+        item_id: str | int,
+        title: str | None = None,
+        position: int | None = None,
+        indent: int | None = None,
+        external_url: str | None = None,
+        new_tab: bool | None = None,
+        completion_requirement_type: str | None = None,
+        completion_requirement_min_score: int | None = None,
+        published: bool | None = None,
+        move_to_module_id: str | int | None = None
+    ) -> str:
+        """Update an existing module item.
+
+        Args:
+            course_identifier: Course code or Canvas ID
+            module_id: Module ID containing the item
+            item_id: Item ID to update
+            title: New item title
+            position: New position within module
+            indent: New indentation level (0-4)
+            external_url: New URL (ExternalUrl items only)
+            new_tab: Open external links in new tab
+            completion_requirement_type: New completion type, or empty string to remove
+            completion_requirement_min_score: Minimum score (for min_score type)
+            published: Whether the item is published
+            move_to_module_id: Move item to a different module
+        """
+        # Backstop for issue 239: never publish our provenance markers.
+        if title is not None and contains_fence_markers(title):
+            return FENCE_LEAK_ERROR
+
+        course_id = await get_course_id(course_identifier)
+
+        # Build update parameters
+        item_params: dict[str, Any] = {}
+
+        if title is not None:
+            item_params["module_item[title]"] = title
+
+        if position is not None:
+            item_params["module_item[position]"] = position
+
+        if indent is not None:
+            if indent < 0 or indent > 4:
+                return "indent must be between 0 and 4"
+            item_params["module_item[indent]"] = indent
+
+        if external_url is not None:
+            item_params["module_item[external_url]"] = external_url
+
+        if new_tab is not None:
+            item_params["module_item[new_tab]"] = str(new_tab).lower()
+
+        if published is not None:
+            item_params["module_item[published]"] = str(published).lower()
+
+        if move_to_module_id is not None:
+            item_params["module_item[module_id]"] = move_to_module_id
+
+        # Handle completion requirements
+        if completion_requirement_type is not None:
+            if completion_requirement_type == "":
+                # Remove completion requirement
+                item_params["module_item[completion_requirement][type]"] = ""
+            else:
+                valid_completion_types = ["must_view", "must_submit", "must_contribute",
+                                         "min_score", "must_mark_done"]
+                if completion_requirement_type not in valid_completion_types:
+                    return f"Invalid completion_requirement_type. Must be one of: {', '.join(valid_completion_types)}"
+
+                item_params["module_item[completion_requirement][type]"] = completion_requirement_type
+
+                if completion_requirement_type == "min_score":
+                    if completion_requirement_min_score is None:
+                        return "completion_requirement_min_score is required when type is 'min_score'"
+                    item_params["module_item[completion_requirement][min_score]"] = completion_requirement_min_score
+
+        if not item_params:
+            return "No changes specified. Please provide at least one field to update."
+
+        response = await make_canvas_request(
+            "put",
+            f"/courses/{course_id}/modules/{module_id}/items/{item_id}",
+            data=item_params,
+            use_form_data=True
+        )
+
+        if "error" in response:
+            return f"Error updating module item: {response['error']}"
+
+        # Format success response
+        item_title = response.get("title", "Untitled")
+        item_type = response.get("type", "Unknown")
+        item_position = response.get("position")
+        item_published = response.get("published", False)
+
+        course_display = await get_course_code(course_id) or course_identifier
+        result = "✅ Module item updated successfully!\n\n"
+        result += f"**{item_title}**\n"
+        result += f"  Course: {course_display}\n"
+        result += f"  Module ID: {response.get('module_id', module_id)}\n"
+        result += f"  Item ID: {item_id}\n"
+        result += f"  Type: {item_type}\n"
+        result += f"  Position: {item_position}\n"
+        result += f"  Published: {'Yes' if item_published else 'No'}\n"
+
+        if move_to_module_id and str(response.get("module_id")) == str(move_to_module_id):
+            result += f"  ✓ Moved to module {move_to_module_id}\n"
+
+        return result
+
+    @mcp.tool(annotations=ToolAnnotations(destructive_hint=True, idempotent_hint=True))
+    @validate_params
+    async def delete_module_item(
+        course_identifier: str | int,
+        module_id: str | int,
+        item_id: str | int,
+        confirmation_token: str | None = None
+    ) -> str:
+        """Remove an item from a module. Two-step: preview first, then confirm with the token.
+
+        Only unlinks the item from the module; the linked content (page,
+        assignment, etc.) is not deleted.
+
+        Args:
+            course_identifier: Course code or Canvas ID
+            module_id: Module ID containing the item
+            item_id: Item ID to remove
+            confirmation_token: Token from the preview call; omit to preview
+        """
+        course_id = await get_course_id(course_identifier)
+
+        item_response = await make_canvas_request(
+            "get", f"/courses/{course_id}/modules/{module_id}/items/{item_id}"
+        )
+        if "error" in item_response:
+            return f"Error fetching module item details: {item_response['error']}"
+        item_title = item_response.get("title", "Unknown")
+        item_type = item_response.get("type", "Unknown")
+        shown_title = fence_untrusted_inline(item_title, "module item title")
+
+        course_display = await get_course_code(course_id) or course_identifier
+        fingerprint = _DELETE_MODULE_ITEM_GUARD.fingerprint(
+            "delete_module_item", str(course_id), str(module_id), str(item_id), item_title, item_type
+        )
+        if not confirmation_token:
+            preview = (
+                f"Would remove **{shown_title}** ({item_type}) from module {module_id} "
+                f"in course {course_display}\n"
+                f"  Item ID: {item_id}\n"
+                "  Note: The underlying content is NOT deleted, only unlinked from this module."
+            )
+            return preview_with_token(
+                _DELETE_MODULE_ITEM_GUARD, fingerprint, "delete_module_item", preview
+            )
+        error = redeem_confirmation(_DELETE_MODULE_ITEM_GUARD, confirmation_token, fingerprint)
+        if error:
+            return error
+
+        response = await make_canvas_request(
+            "delete", f"/courses/{course_id}/modules/{module_id}/items/{item_id}"
+        )
+        if isinstance(response, dict) and "error" in response:
+            return f"Error deleting module item: {response['error']}"
+
+        result = "✅ Module item removed successfully!\n\n"
+        result += f"  Removed: **{shown_title}** ({item_type})\n"
+        result += f"  Course: {course_display}\n"
+        result += f"  Module ID: {module_id}\n"
+        result += f"  Item ID: {item_id}\n"
+        result += "\n  Note: The underlying content was NOT deleted, only unlinked from this module.\n"
+        return result

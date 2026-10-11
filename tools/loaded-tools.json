@@ -1,0 +1,2876 @@
+{
+  "version": "1.14.0",
+  "profile": "student",
+  "write_tools_enabled": 0,
+  "tools": [
+    {
+      "name": "list_courses",
+      "title": "List Courses",
+      "description": "List courses for the authenticated user.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "include_concluded": {
+            "default": false,
+            "type": "boolean",
+            "description": "Include concluded/past enrollments in the results."
+          },
+          "include_all": {
+            "default": false,
+            "type": "boolean",
+            "description": "Include all enrollments instead of only current active ones."
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_course_details",
+      "title": "Get Course Details",
+      "description": "Get detailed information about a specific course.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_syllabus",
+      "title": "Get Syllabus",
+      "description": "Get the complete Canvas Syllabus tab content for a course.\n\nUnlike get_course_content_overview (which returns only a ~1000-char\npreview), this returns the full syllabus body so later sections such as\ngrading policies, weighting, and final-exam details remain accessible.\nThe syllabus is complete by default; it is cut only if you pass\nmax_chars, and a cut is always marked with \"[truncated at N characters]\".",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "output_format": {
+            "default": "text",
+            "type": "string",
+            "description": "\"text\" (plain text, default), \"html\" (raw HTML body),\nor \"both\" (plain text followed by raw HTML)"
+          },
+          "max_chars": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional positive cap on the returned characters per\nsection. When exceeded, the content is truncated with an explicit\n\"[truncated...]\" marker. Defaults to None (no truncation)."
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_course_content_overview",
+      "title": "Get Course Content Overview",
+      "description": "Get a comprehensive overview of course content including pages, modules, and syllabus.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "include_pages": {
+            "default": true,
+            "type": "boolean",
+            "description": "Include pages information (default: True)"
+          },
+          "include_modules": {
+            "default": true,
+            "type": "boolean",
+            "description": "Include modules and their items (default: True)"
+          },
+          "include_syllabus": {
+            "default": true,
+            "type": "boolean",
+            "description": "Include syllabus content (default: True)"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "list_pages",
+      "title": "List Pages",
+      "description": "List pages for a specific course.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "sort": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "title",
+            "description": "Sort by 'title', 'created_at', or 'updated_at'"
+          },
+          "order": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "asc",
+            "description": "'asc' or 'desc'"
+          },
+          "search_term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Filter pages containing this term"
+          },
+          "published": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Filter by published status (None for all)"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_page_content",
+      "title": "Get Page Content",
+      "description": "Get the full content body of a specific page.\n\nReturns the page's raw HTML body untruncated, followed by an inventory\nof any embedded media (images, videos, iframes) with their source URLs,\nso media is reported explicitly rather than left for the reader to spot\nin the markup.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "page_url_or_id": {
+            "type": "string",
+            "description": "Page URL slug or page ID"
+          }
+        },
+        "required": [
+          "course_identifier",
+          "page_url_or_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_page_details",
+      "title": "Get Page Details",
+      "description": "Get a specific page's metadata plus a short text preview.\n\nReturns settings (status, timestamps, editor, editing roles) and a\nPLAIN-TEXT preview capped at 500 characters. The preview drops all\nmarkup, so embedded media is listed separately rather than silently\ndisappearing. For the full body, including media markup, use\nget_page_content.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "page_url_or_id": {
+            "type": "string",
+            "description": "Page URL slug or page ID"
+          }
+        },
+        "required": [
+          "course_identifier",
+          "page_url_or_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_front_page",
+      "title": "Get Front Page",
+      "description": "Get the front page content for a course.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "list_module_items",
+      "title": "List Module Items",
+      "description": "List items within a specific module, including pages.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "module_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "The module ID"
+          },
+          "include_content_details": {
+            "default": true,
+            "type": "boolean",
+            "description": "Include additional content details (default: True)"
+          }
+        },
+        "required": [
+          "course_identifier",
+          "module_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "list_assignments",
+      "title": "List Assignments",
+      "description": "List assignments for a specific course.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "raw_dates": {
+            "default": false,
+            "type": "boolean",
+            "description": "Append a JSON block with each assignment's due_at,\nunlock_at, lock_at, updated_at, all_dates and checkpoint dates\nexactly as Canvas returns them (null stays null). Use it for\ndue-date audits: a checkpointed discussion has a null due_at\nand its dates on the checkpoints. Default False."
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_assignment_details",
+      "title": "Get Assignment Details",
+      "description": "Get detailed information about a specific assignment.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "assignment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Canvas assignment ID"
+          },
+          "raw_dates": {
+            "default": false,
+            "type": "boolean",
+            "description": "Append a JSON block with due_at, unlock_at, lock_at,\nupdated_at, all_dates and checkpoint dates exactly as Canvas\nreturns them (null stays null). Default False."
+          }
+        },
+        "required": [
+          "course_identifier",
+          "assignment_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "list_discussion_topics",
+      "title": "List Discussion Topics",
+      "description": "List discussion topics for a specific course.\n\nReturns discussion topics only. Announcements are a separate Canvas\ncollection and are NOT included unless include_announcements=True.\nTo list announcements on their own, use list_announcements instead.\n\nWithout group_id this lists course-level topics only. Topics that\nstudents start inside a group space are missing from that list; use\nlist_group_discussion_topics to find them across all groups.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "include_announcements": {
+            "default": false,
+            "type": "boolean",
+            "description": "Also list the course's announcements\nalongside its discussion topics (default: False). Each entry is\nlabelled \"Type: Announcement\" or \"Type: Discussion\"."
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas group ID, to read a discussion inside a group\nspace instead of the course (default: None). Discussions that\nstudents start in a group exist only there. The group must\nbelong to the course."
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "list_group_discussion_topics",
+      "title": "List Group Discussion Topics",
+      "description": "List the discussion topics inside every group space of a course.\n\nlist_discussion_topics only sees course-level topics. Topics that\nstudents start inside a group space exist only in that group, so use\nthis tool to find them. Each topic is marked either as a group copy of\na course topic or as started in the group itself. Read a topic's posts\nwith list_discussion_entries or get_discussion_with_replies, passing\nthe topic's group_id.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "group_category_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Only include groups in this group set\n(default: None, all groups in the course)"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "list_announcements",
+      "title": "List Announcements",
+      "description": "List a course's announcements, and nothing else.\n\nReturns announcements only -- ordinary discussion topics are excluded.\nUse list_discussion_topics for discussions.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "type": "string",
+            "description": "Course code or Canvas ID"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_discussion_topic_details",
+      "title": "Get Discussion Topic Details",
+      "description": "Get detailed information about a specific discussion topic.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Discussion topic ID"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas group ID, to read a discussion inside a group\nspace instead of the course (default: None). Discussions that\nstudents start in a group exist only there. The group must\nbelong to the course."
+          },
+          "raw_dates": {
+            "default": false,
+            "type": "boolean",
+            "description": "Append a JSON block with the topic's dates and, for a\ngraded discussion, its assignment's due_at, unlock_at, lock_at,\nupdated_at and checkpoint dates exactly as Canvas returns them\n(null stays null). Default False."
+          }
+        },
+        "required": [
+          "course_identifier",
+          "topic_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "list_discussion_entries",
+      "title": "List Discussion Entries",
+      "description": "List discussion entries (posts) for a specific discussion topic with optional full content and replies.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Discussion topic ID"
+          },
+          "include_full_content": {
+            "default": false,
+            "type": "boolean",
+            "description": "Return the complete text of every entry and\nreply (default: False, which shows short previews)"
+          },
+          "include_replies": {
+            "default": false,
+            "type": "boolean",
+            "description": "Fetch replies for each entry (default: False)"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas group ID, to read a discussion inside a group\nspace instead of the course (default: None). Discussions that\nstudents start in a group exist only there. The group must\nbelong to the course."
+          }
+        },
+        "required": [
+          "course_identifier",
+          "topic_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_discussion_entry_details",
+      "title": "Get Discussion Entry Details",
+      "description": "Get detailed information about a specific discussion entry including all its replies.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Discussion topic ID"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Discussion entry ID"
+          },
+          "include_replies": {
+            "default": true,
+            "type": "boolean",
+            "description": "Fetch and include replies (default: True)"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas group ID, to read a discussion inside a group\nspace instead of the course (default: None). Discussions that\nstudents start in a group exist only there. The group must\nbelong to the course."
+          }
+        },
+        "required": [
+          "course_identifier",
+          "topic_id",
+          "entry_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_discussion_with_replies",
+      "title": "Get Discussion With Replies",
+      "description": "Read every entry of a discussion in full, optionally with all replies.\n\nReturns the topic title (not its body; get_discussion_topic_details has\nthat) and each top-level entry's author, post time, and complete text,\nnever cut; with include_replies=True each entry's replies are fetched\ntoo, also complete. get_discussion_entry_details reads a single entry.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Discussion topic ID"
+          },
+          "include_replies": {
+            "default": false,
+            "type": "boolean",
+            "description": "Fetch detailed replies for all entries (default: False)"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas group ID, to read a discussion inside a group\nspace instead of the course (default: None). Discussions that\nstudents start in a group exist only there. The group must\nbelong to the course."
+          }
+        },
+        "required": [
+          "course_identifier",
+          "topic_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "list_modules",
+      "title": "List Modules",
+      "description": "List all modules in a course.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "include_items": {
+            "default": false,
+            "type": "boolean",
+            "description": "Include summary of items in each module"
+          },
+          "search_term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Filter modules by name"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_course_structure",
+      "title": "Get Course Structure",
+      "description": "Get the full module and item structure for a course in a single call.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "include_unpublished": {
+            "default": true,
+            "type": "boolean",
+            "description": "Include unpublished modules and items (default: True)"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "read_course_file",
+      "title": "Read Course File",
+      "description": "Read a file from a Canvas course and return its content as base64.\n\nUnlike download_course_file which saves to the server's local filesystem,\nthis tool returns the file content directly in the response. This is useful\nwhen the MCP server runs on a different machine than the client.\n\nUse list_course_files or list_module_items to find file IDs.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Canvas file ID"
+          },
+          "max_size_mb": {
+            "default": 25.0,
+            "type": "number",
+            "description": "Maximum file size in MB to read (default: 25). Clamped server-side to\nREAD_FILE_MAX_SIZE_MB (default 100). Files larger than the effective limit are\nrejected to avoid excessive memory usage."
+          }
+        },
+        "required": [
+          "course_identifier",
+          "file_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "list_course_files",
+      "title": "List Course Files",
+      "description": "List files in a Canvas course with optional search.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "search_term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Filter files by name"
+          },
+          "sort": {
+            "default": "updated_at",
+            "type": "string",
+            "description": "Sort field: name, size, created_at, updated_at, content_type (default: updated_at)"
+          },
+          "order": {
+            "default": "desc",
+            "type": "string",
+            "description": "\"asc\" or \"desc\" (default: desc)"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "list_conversations",
+      "title": "List Conversations",
+      "description": "List conversations for the current user.\n\nReturns one page of the inbox (Canvas's default page size). `returned`\nis how many conversations are in this response; `more_available` is\ntrue when Canvas reported further pages that were not fetched.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scope": {
+            "default": "unread",
+            "type": "string",
+            "description": "\"unread\", \"starred\", \"sent\", \"archived\", or \"all\""
+          },
+          "filter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Conversation IDs to filter by"
+          },
+          "filter_mode": {
+            "default": "and",
+            "type": "string",
+            "description": "\"and\" or \"or\" for filter_ids"
+          },
+          "include_participants": {
+            "default": true,
+            "type": "boolean",
+            "description": "Include participant info"
+          },
+          "include_all_ids": {
+            "default": false,
+            "type": "boolean",
+            "description": "Include all participant IDs"
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_conversation_details",
+      "title": "Get Conversation Details",
+      "description": "Get detailed conversation information with messages.\n\nViewing never marks the conversation read; use mark_conversations_read\nfor that.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Conversation ID"
+          },
+          "include_messages": {
+            "default": true,
+            "type": "boolean",
+            "description": "Include all messages"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_unread_count",
+      "title": "Get Unread Count",
+      "description": "Get number of unread conversations.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "execution": null,
+      "outputSchema": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "search_canvas_tools",
+      "title": "Search Canvas Tools",
+      "description": "Search available Canvas tools by keyword — both the registered MCP\ntools (e.g. list_peer_reviews, create_assignment) and the TypeScript\ncode-execution API used by execute_typescript().",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "default": "",
+            "type": "string",
+            "description": "Search term to filter tools (empty = all)"
+          },
+          "detail_level": {
+            "default": "signatures",
+            "enum": [
+              "names",
+              "signatures",
+              "full"
+            ],
+            "type": "string",
+            "description": "\"names\" (names/paths only), \"signatures\" (recommended), or \"full\" (fuller descriptions/file contents)"
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_my_enrollments",
+      "title": "Get My Enrollments",
+      "description": "List the courses YOU are enrolled in, with your role in each.\n\nUse this — not check_enrollment — for any question about your own\nenrollment. check_enrollment reads the course roster, which requires\nroster-admin rights your token probably does not have.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "include_concluded": {
+            "default": false,
+            "type": "boolean",
+            "description": "Also include concluded/completed courses\n(default False = active courses only)."
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_my_profile",
+      "title": "Get My Profile",
+      "description": "Get YOUR own Canvas identity (user ID, name, login ID).\n\nAnswers \"who am I?\" — useful when a tool needs your Canvas user ID or\nNetID. Reports only your own record, never anybody else's.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "shared",
+      "enabled": true
+    },
+    {
+      "name": "get_my_upcoming_assignments",
+      "title": "Get My Upcoming Assignments",
+      "description": "Get your upcoming assignments across all courses.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "default": 7,
+            "type": "integer",
+            "description": "Number of days to look ahead (default: 7)"
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "get_my_submission_status",
+      "title": "Get My Submission Status",
+      "description": "Get your submission status for assignments.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Course code or Canvas ID (omit for all courses)"
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "get_my_course_grades",
+      "title": "Get My Course Grades",
+      "description": "Get your current grades across all enrolled courses.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "get_my_todo_items",
+      "title": "Get My Todo Items",
+      "description": "Get your Canvas TODO list.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "get_my_peer_reviews_todo",
+      "title": "Get My Peer Reviews Todo",
+      "description": "Get peer reviews YOU need to complete.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Course code or Canvas ID (omit for all courses).\nRequired if assignment_identifier is given."
+          },
+          "assignment_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas assignment ID to check directly, bypassing\nthe per-course discovery scan. Use this when you already know which\nassignment has your peer review — the discovery scan only queries\nassignments whose \"peer_reviews\" flag came back true on the course's\nassignment listing, so an assignment where that flag is missing or\nstale for any reason would otherwise be silently skipped."
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "list_my_announcements",
+      "title": "List My Announcements",
+      "description": "List announcements across ALL your active courses in one call.\n\nCross-course: one query covers every course you are actively enrolled\nin, newest first. For a single course's full announcement history use\nlist_announcements instead. Default window: the last 14 days.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional course code or Canvas ID to show only\nthat course."
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Earliest post date, YYYY-MM-DD, MM/DD/YYYY or ISO\n8601 (default: 14 days before end_date). A date-only value\nstarts at midnight in your Canvas account's time zone."
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Latest post date, same formats (default: now). A\ndate-only value includes that whole day in your Canvas\naccount's time zone; ISO timestamps are exact."
+          },
+          "limit": {
+            "default": 50,
+            "type": "integer",
+            "description": "Maximum announcements to show (1-200, default 50)."
+          },
+          "preview_chars": {
+            "default": 400,
+            "type": "integer",
+            "description": "Characters of body text to preview per\nannouncement (0-2000, default 400; 0 shows titles only). A\nshortened preview says so; get_discussion_topic_details with\nthe course and announcement ID reads the whole announcement."
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "get_my_activity_stream",
+      "title": "Get My Activity Stream",
+      "description": "Your recent Canvas activity across all active courses, grouped by kind.\n\nThe dashboard \"Recent Activity\" feed: announcements, discussions,\ninbox conversations, grades and submission comments, and\nnotifications, newest first. Reading it does not mark anything read.\nGroup activity and inbox messages not tied to a course are not\nincluded (Canvas limits this feed to your active courses).",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "item_type": {
+            "default": "all",
+            "enum": [
+              "all",
+              "announcements",
+              "discussions",
+              "conversations",
+              "submissions",
+              "notifications"
+            ],
+            "type": "string",
+            "description": "Show only one kind: \"announcements\", \"discussions\",\n\"conversations\", \"submissions\" (grades and submission\ncomments), \"notifications\", or \"all\" (default)."
+          },
+          "limit": {
+            "default": 30,
+            "type": "integer",
+            "description": "Maximum items to show (1-200, default 30)."
+          },
+          "include_summary": {
+            "default": true,
+            "type": "boolean",
+            "description": "Also show per-kind total and unread counts\n(default True)."
+          },
+          "preview_chars": {
+            "default": 300,
+            "type": "integer",
+            "description": "Characters of text to preview per item (0-2000,\ndefault 300; 0 shows titles only)."
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "list_my_groups",
+      "title": "List My Groups",
+      "description": "List the Canvas groups you belong to (project teams, study groups).\n\nShows each group's name, ID, course and course ID, group category ID\nand member count. Use the group ID with get_group_members and\nlist_group_files.\n\nTo read a group's discussions or announcements, use the shared\ndiscussion tools with the course ID and group ID printed here:\nlist_discussion_topics(course_identifier, group_id=...,\ninclude_announcements=True) lists them, then\nget_discussion_with_replies(course_identifier, topic_id,\ninclude_replies=True, group_id=...) reads one with its replies.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Only show your groups in this course\n(course code or Canvas ID). Default: groups in every course."
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "get_group_members",
+      "title": "Get Group Members",
+      "description": "List the members of one of your groups (names and Canvas user IDs).\n\nOnly works for groups you belong to. Never shows email addresses. When\nthe server's data anonymization is on (ENABLE_DATA_ANONYMIZATION),\nclassmates' names appear as stable pseudonyms; IDs are real.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Canvas group ID from list_my_groups"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "list_group_files",
+      "title": "List Group Files",
+      "description": "List the files stored in one of your groups.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Canvas group ID from list_my_groups"
+          },
+          "search_term": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Only files whose name contains this text (2+ characters)"
+          },
+          "sort": {
+            "default": "updated_at",
+            "type": "string",
+            "description": "name, size, created_at, updated_at or content_type (default: updated_at)"
+          },
+          "order": {
+            "default": "desc",
+            "type": "string",
+            "description": "\"asc\" or \"desc\" (default: desc)"
+          }
+        },
+        "required": [
+          "group_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "get_my_assignment_scores",
+      "title": "Get My Assignment Scores",
+      "description": "List your score on every assignment in a course, grouped by assignment group.\n\nShows each group's weight (when the course weights groups) and drop\nrules, then each assignment's score / points possible and status:\ngraded, missing, late, excused, unsubmitted, submitted but ungraded,\npending review, grade not posted yet, or not counted toward the final\ngrade. Uses a student token's own submissions; it does not compute a\ncourse total (use calculate_grade_scenarios for that).",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "calculate_grade_scenarios",
+      "title": "Calculate Grade Scenarios",
+      "description": "Recompute your course grade, try what-if scores, and find what you need on remaining work.\n\nReproduces Canvas's grade arithmetic (weighted or total-points groups,\ndrop lowest/highest and never-drop rules, excused and omitted\nassignments, ungraded work excluded, groups with nothing graded left\nout) and shows it next to Canvas's own current score, flagging any\ndisagreement. Optionally applies what-if scores, and reports the single\npercentage you would need on every remaining ungraded assignment to\nreach a target. Letters use the course's grading scheme when your token\ncan read it, else Canvas's default scheme; the output says which.\nNothing is changed in Canvas.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "hypothetical_scores": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional what-if points by assignment ID, e.g.\n{\"12345\": 18, \"12346\": 9.5}. Points, not percentages."
+          },
+          "target_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional target course percentage (0-200)"
+          },
+          "target_letter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Optional target letter, e.g. \"A-\" (from the scheme in\nuse). Give target_percent or target_letter, not both."
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "list_quizzes",
+      "title": "List Quizzes",
+      "description": "List the quizzes in one of YOUR courses: Classic and New Quizzes.\n\nRead-only. Shows due/open/close dates, time limit, allowed attempts,\npoints and your submission state. It never opens a quiz, starts an\nattempt, or reads questions or answers.\n\nClassic quizzes are listed by quiz ID; New Quizzes by assignment ID\n(Canvas exposes them only as assignments). Use get_quiz_details for one\nquiz and your attempts.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "get_quiz_details",
+      "title": "Get Quiz Details",
+      "description": "Get one quiz's settings and YOUR OWN latest attempt (used, remaining, kept score).\n\nRead-only. It never starts an attempt and never reads questions or\nanswers. Pass exactly one of quiz_id (a Classic quiz, as listed by\nlist_quizzes) or assignment_id (a New Quiz, or the assignment of a\ngraded Classic quiz). For New Quizzes Canvas does not expose settings\nor attempt history to students, and the result says so. With grading\nrights in the course, attempts are not requested at all.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "quiz_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas Classic quiz ID"
+          },
+          "assignment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas assignment ID (New Quizzes)"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "get_my_submission",
+      "title": "Get My Submission",
+      "description": "Get your own submission for an assignment, including attempts used.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "assignment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Canvas assignment ID"
+          }
+        },
+        "required": [
+          "course_identifier",
+          "assignment_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "list_calendar_events",
+      "title": "List Calendar Events",
+      "description": "List your Canvas calendar: course events, personal events, group\nevents and assignment due dates, in date order.\n\nCovers every active course, your personal calendar and your groups\nunless course_identifier narrows it. For submission status of upcoming\nassignments use get_my_upcoming_assignments instead.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Window start, YYYY-MM-DD or ISO 8601 with an offset\n(default: today)"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Window end, inclusive (default: start + days); the\nwindow may span at most 366 days"
+          },
+          "days": {
+            "default": 14,
+            "type": "integer",
+            "description": "Look-ahead when end_date is omitted (default 14, max 366)"
+          },
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Only this course's calendar (code or Canvas ID)"
+          },
+          "event_type": {
+            "default": "all",
+            "type": "string",
+            "description": "\"event\", \"assignment\", or \"all\" (default)"
+          },
+          "include_descriptions": {
+            "default": false,
+            "type": "boolean",
+            "description": "Include event descriptions (longer output)"
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "get_calendar_event",
+      "title": "Get Calendar Event",
+      "description": "Get one calendar event in full, including its description.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Numeric calendar event ID (from list_calendar_events). For\nan assignment due date, use get_assignment_details instead."
+          }
+        },
+        "required": [
+          "event_id"
+        ]
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 500000,
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "list_planner_notes",
+      "title": "List Planner Notes",
+      "description": "List your own planner notes (personal to-do items) in a date window.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Window start, YYYY-MM-DD or ISO 8601 with an offset\n(default: today)"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Window end, inclusive (default: start + days); the\nwindow may span at most 366 days"
+          },
+          "days": {
+            "default": 14,
+            "type": "integer",
+            "description": "Look-ahead when end_date is omitted (default 14, max 366)"
+          },
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Only notes linked to this course"
+          }
+        }
+      },
+      "execution": null,
+      "outputSchema": null,
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "find_message_recipients",
+      "title": "Find Message Recipients",
+      "description": "Find people you can message in a course, with their Canvas user IDs.\n\nUse it to look up your instructor's or TA's user ID before\nsend_message. Only individual people are returned. While data\nanonymization is on, people who are not course staff are listed\nunder a Student_<hash> pseudonym, and a name search returns course\nstaff only.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "course_identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Course code or Canvas ID"
+          },
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Part of a name to match, e.g. \"smith\" (omit to list all).\nWhile anonymization is on, matches only course staff."
+          },
+          "role": {
+            "default": "any",
+            "type": "string",
+            "description": "\"any\", \"staff\" (teachers, TAs, designers), \"teacher\", \"ta\", or \"student\""
+          },
+          "limit": {
+            "default": 25,
+            "type": "integer",
+            "description": "Maximum matches to return (1-50, default 25)"
+          }
+        },
+        "required": [
+          "course_identifier"
+        ]
+      },
+      "execution": null,
+      "outputSchema": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": {
+        "title": null,
+        "readOnlyHint": true,
+        "destructiveHint": null,
+        "idempotentHint": null,
+        "openWorldHint": null
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      },
+      "provider": "upstream",
+      "category": "student",
+      "enabled": true
+    },
+    {
+      "name": "list_courses",
+      "title": null,
+      "description": "List active Canvas courses available to the authenticated account.",
+      "inputSchema": {
+        "properties": {},
+        "title": "list_coursesArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Result",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "list_coursesOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": null,
+      "_meta": null,
+      "provider": "legacy",
+      "category": "legacy",
+      "enabled": true
+    },
+    {
+      "name": "get_course_details",
+      "title": null,
+      "description": "Get basic details for one Canvas course by course ID.",
+      "inputSchema": {
+        "properties": {
+          "course_id": {
+            "title": "Course Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "course_id"
+        ],
+        "title": "get_course_detailsArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_course_detailsDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": null,
+      "_meta": null,
+      "provider": "legacy",
+      "category": "legacy",
+      "enabled": true
+    },
+    {
+      "name": "list_assignments",
+      "title": null,
+      "description": "List assignments and due dates for one Canvas course.",
+      "inputSchema": {
+        "properties": {
+          "course_id": {
+            "title": "Course Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "course_id"
+        ],
+        "title": "list_assignmentsArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Result",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "list_assignmentsOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": null,
+      "_meta": null,
+      "provider": "legacy",
+      "category": "legacy",
+      "enabled": true
+    },
+    {
+      "name": "create_assignment",
+      "title": null,
+      "description": "Create an unpublished assignment with a timezone-qualified due date.",
+      "inputSchema": {
+        "properties": {
+          "course_id": {
+            "title": "Course Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "due_at": {
+            "title": "Due At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Description"
+          },
+          "points_possible": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Points Possible"
+          }
+        },
+        "required": [
+          "course_id",
+          "name",
+          "due_at"
+        ],
+        "title": "create_assignmentArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "create_assignmentDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": null,
+      "_meta": null,
+      "provider": "legacy",
+      "category": "legacy",
+      "enabled": false
+    },
+    {
+      "name": "update_assignment",
+      "title": null,
+      "description": "Update only the provided name, due date, description, or points for an assignment.",
+      "inputSchema": {
+        "properties": {
+          "course_id": {
+            "title": "Course Id",
+            "type": "integer"
+          },
+          "assignment_id": {
+            "title": "Assignment Id",
+            "type": "integer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Due At"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Description"
+          },
+          "points_possible": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Points Possible"
+          }
+        },
+        "required": [
+          "course_id",
+          "assignment_id"
+        ],
+        "title": "update_assignmentArguments",
+        "type": "object"
+      },
+      "execution": null,
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "update_assignmentDictOutput",
+        "type": "object"
+      },
+      "icons": null,
+      "annotations": null,
+      "_meta": null,
+      "provider": "legacy",
+      "category": "legacy",
+      "enabled": false
+    }
+  ]
+}

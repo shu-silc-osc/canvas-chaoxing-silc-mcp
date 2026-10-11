@@ -1,0 +1,23 @@
+# Credentials and private signing material
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.kbx
+private-keys*/
+.gnupg/
+secring*
+# Local runtimes and account data
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.log
+preview.png
+verification.json
+local-data/
+*.sqlite*
+.DS_Store

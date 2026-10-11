@@ -1,0 +1,16 @@
+# Replace REPOSITORY_ROOT with the absolute clone path. No secrets here.
+[mcp_servers.canvas-student-center]
+command = 'REPOSITORY_ROOT\vendor\canvas-mcp\.venv\Scripts\canvas-mcp-server.exe'
+args = ["--role", "student"]
+cwd = 'REPOSITORY_ROOT\vendor\canvas-mcp'
+env_vars = ["CANVAS_API_TOKEN"]
+startup_timeout_sec = 60
+tool_timeout_sec = 120
+
+[mcp_servers.canvas-student-center.env]
+CANVAS_API_URL = "https://insearch.instructure.com/api/v1"
+CANVAS_ROLE = "student"
+ALLOWED_WRITE_TOOLS = "none"
+STUDENT_WRITE_TOOLS = ""
+EXECUTE_TYPESCRIPT_ENABLED = "false"
+TIMEZONE = "Asia/Shanghai"

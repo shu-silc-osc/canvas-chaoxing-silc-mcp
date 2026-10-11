@@ -1,0 +1,63 @@
+# Canvas & Chaoxing SILC MCP · Student Center
+
+本地学生课程助手的先验性实验。当前版本实现 **Canvas**；**超星 / Chaoxing 尚未接入**，仓库名称不代表已有超星功能。
+
+## 当前功能
+
+- 课程总览、作业与 DDL、本人提交状态、成绩和 Canvas TODO。
+- 作业搜索、课程/状态筛选，详情与 Canvas 原页面入口。
+- 中国时间、悉尼时间、UTC；未设置截止时间不会自动判为逾期。
+- 收藏和学习计划保存在浏览器 localStorage，不写回 Canvas。
+- 公告、日历、成绩等学生服务入口，以及按 MCP JSON Schema 生成的工具调用面板。
+- 无内置聊天模型；MCP 可另接到 Codex 等客户端。
+
+## 已装配工具
+
+上游 `vishalsachdev/canvas-mcp` 固定为 **v1.14.0**，commit `4696c166722becf7608f1f197a0c72c83048d224`。
+
+| 提供者 | 已加载 | 工作台允许调用 |
+|---|---:|---:|
+| 上游学生＋共享工具 | 47 | 47 个只读工具 |
+| 原有精简 Canvas MCP | 5 | 3 个只读工具；2 个教师写工具禁用 |
+
+实际工具名称、说明、输入 Schema 和启用状态见 [`tools/loaded-tools.json`](tools/loaded-tools.json)。加载成功不代表每个工具都已通过学校账号权限验证。
+
+运行时强制 `CANVAS_ROLE=student`、`ALLOWED_WRITE_TOOLS=none`、`STUDENT_WRITE_TOOLS` 为空、`EXECUTE_TYPESCRIPT_ENABLED=false`。上游源码中的其他角色及写工具为保持完整依赖而保留，但本工作台不注册或不放行它们。单独运行 legacy MCP 会暴露其五个工具，请使用工作台的只读入口。
+
+## 本地运行（Windows / Python 3.12）
+
+```powershell
+git clone https://github.com/shu-silc-osc/canvas-chaoxing-silc-mcp.git
+cd canvas-chaoxing-silc-mcp
+python -m pip install uv
+.\setup.ps1
+```
+
+把自己的 `CANVAS_API_TOKEN` 设置在启动服务的进程环境中，或通过 Windows 用户环境变量界面设置。不要把实际 Token 写入脚本、提交、Issue 或截图。项目中的 `.env.example` 只是空值说明，不会被工作台自动加载。
+
+```powershell
+.\start.ps1
+# 停止服务
+.\stop.ps1
+```
+
+地址：`http://127.0.0.1:8768/`。默认实例是 `https://insearch.instructure.com/`；当前适配器限制此 HTTPS 主机，不宣称支持任意学校。服务只监听回环地址，API 校验 Host、Origin 和每次启动生成的会话凭证。关闭网页不会停止服务。
+
+两个 MCP 使用独立虚拟环境，避免 MCP 1.x/2.x 依赖冲突。安装使用各自 `uv.lock`；虚拟环境不在仓库中。
+
+## 接入 MCP 客户端
+
+参照 [`docs/mcp-config.example.toml`](docs/mcp-config.example.toml)，把占位绝对路径替换为克隆路径。Token 由客户端的进程环境继承，不放入配置文件。此文件是示例，不会自动修改本机 Codex 设置。
+
+## 发布内容与签名
+
+- 上传源码、静态页面、工具目录、依赖锁文件、安装脚本和许可证。
+- 不上传 Canvas API Key、Cookie、GPG 私钥、真实课程/成绩数据、运行日志、截图或虚拟环境。
+- GPG 公钥及指纹见 [`docs/SIGNING.md`](docs/SIGNING.md)；初始提交和版本标签使用 GPG 签名。
+- 收藏与计划依赖浏览器本地存储；课程数据仅在服务进程内缓存约 5 分钟。
+
+## 来源与许可
+
+上游 Canvas MCP 为 MIT，原版权声明保留于 [`vendor/canvas-mcp/LICENSE`](vendor/canvas-mcp/LICENSE)。来源与版本记录见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。本项目新增代码采用 MIT。
+
+实验版不提供云服务、自动提交或学校官方保证。学校权限可能返回 403 或空内容；课程日期仍以 Canvas 原始记录和教师说明为准。
