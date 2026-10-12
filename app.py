@@ -10,6 +10,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
+from calendar_data import academic_year, year_window, merge_events, prepare_translation, introduction
 
 ROOT = Path(__file__).resolve().parent
 UPSTREAM = Path(os.environ.get('STUDENT_CENTER_UPSTREAM', ROOT / 'vendor/canvas-mcp'))
@@ -42,8 +43,34 @@ from canvas_mcp.core.tool_policy import apply_tool_policy, resolve_tool_policy, 
 from canvas_mcp.core.client import fetch_all_paginated_results, make_canvas_request, cleanup_http_client
 
 SESSION = secrets.token_hex(32)
-state = {'clients': {}, 'tools': [], 'cache': None, 'cached_at': 0, 'last_error': None}
+state = {'clients': {}, 'tools': [], 'cache': None, 'cached_at': 0, 'last_error': None, 'calendar': {}, 'contexts': None}
 refresh_lock = asyncio.Lock()
+calendar_lock = asyncio.Lock()
+TRANSLATION_DIR = Path(os.getenv('LOCALAPPDATA', Path.home() / '.local/share')) / 'StudentCenter'
+
+
+def prepare_descriptions(events):
+    try:
+        cache = json.loads((TRANSLATION_DIR / 'translations.zh-CN.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        cache = {}
+    prepared = [prepare_translation(e, cache) for e in events]
+    pending = {e['translation_key']: {'name': e['name'], 'introduction': introduction(e['description'])}
+               for e in prepared if e['translation_status'] == 'pending'}
+    # Only a translation work queue is persisted; no token or account credentials.
+    if pending:
+        try:
+            TRANSLATION_DIR.mkdir(parents=True, exist_ok=True)
+            path = TRANSLATION_DIR / 'translation-pending.json'
+            previous = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
+            previous.update(pending)
+            previous = {k: v for k, v in previous.items() if k not in cache}
+            temp = path.with_suffix('.tmp')
+            temp.write_text(json.dumps(previous, ensure_ascii=False), encoding='utf-8')
+            temp.replace(path)
+        except (OSError, ValueError):
+            pass
+    return prepared
 manifest = json.loads((UPSTREAM / 'tools/TOOL_MANIFEST.json').read_text(encoding='utf-8'))
 categories = {t['name']: t['category'] for t in manifest['tools']}
 # The manifest labels these educator, but upstream registers their read variants
@@ -228,9 +255,71 @@ async def load_dashboard():
         a = t.get('assignment') or t.get('quiz') or {}
         todo_items.append({'name': a.get('name') or t.get('type') or '待办', 'course_id': t.get('course_id'),
             'due_at': a.get('due_at'), 'url': public_url(t.get('html_url') or a.get('html_url'))})
+    state['calendar'].clear()
+    state['contexts'] = None
+    year = academic_year()
+    calendar = await load_calendar(year, courses, all_assignments)
+    errors.extend(calendar['errors'])
     return {'courses': courses, 'assignments': all_assignments, 'todos': todo_items,
+        'calendar_events': calendar['events'], 'academic_year': year,
         'fetched_at': datetime.now(timezone.utc).isoformat(), 'errors': errors, 'source': 'Canvas API · upstream client',
         'version': manifest['version'], 'tool_count': sum(t['provider'] == 'upstream' for t in state['tools'])}
+
+
+async def load_calendar(year, courses, assignments):
+    from canvas_mcp.tools.student_calendar import _fetch_events
+    errors = []
+    if state['contexts'] is None:
+        context_results = await asyncio.gather(make_canvas_request('get', '/users/self'),
+            fetch_all_paginated_results('/users/self/groups', {'per_page': 100}), return_exceptions=True)
+        me, groups = context_results
+        course_ids = {str(c['id']) for c in courses}
+        if not isinstance(groups, list):
+            groups = []
+            errors.append({'source': '小组日历', 'error': '未能读取小组列表'})
+        groups = [g for g in groups if g.get('context_type') != 'Course' or str(g.get('course_id')) in course_ids]
+        contexts = [f"course_{c['id']}" for c in courses]
+        if isinstance(me, dict) and me.get('id'):
+            contexts.insert(0, f"user_{me['id']}")
+        else:
+            errors.append({'source': '个人日历', 'error': '未能确认个人日历参数'})
+        if not errors: state['contexts'] = (contexts, groups)
+    else:
+        contexts, groups = state['contexts']
+    start, end = year_window(year)
+    try:
+        raw, failures, _ = await _fetch_events([contexts, [f"group_{g['id']}" for g in groups]],
+            ('event', 'assignment'), start, end, True)
+    except Exception as exc:
+        raw, failures = [], [type(exc).__name__]
+    if failures: errors.append({'source': '日历', 'error': f'{len(failures)} 个来源未能读取，可刷新重试'})
+    events = merge_events(raw, assignments, courses, groups)
+    for event in events: event['url'] = public_url(event.get('url'))
+    result = {'year': year, 'events': prepare_descriptions(events), 'errors': errors}
+    if not errors: state['calendar'][year] = (time.monotonic(), result)
+    return result
+
+
+async def calendar_feed(request):
+    denied = await guard(request)
+    if denied: return denied
+    try:
+        year = int(request.query_params.get('year', academic_year()))
+        if not 2000 <= year <= 2100: raise ValueError()
+    except (TypeError, ValueError):
+        return JSONResponse({'error': '学年必须在 2000–2100 之间'}, status_code=400)
+    async with calendar_lock:
+        data = state['cache']
+        if not data: return JSONResponse({'error': '请先连接 Canvas'}, status_code=409)
+        cached = state['calendar'].get(year)
+        if cached and time.monotonic() - cached[0] < 300:
+            result = {**cached[1], 'events': prepare_descriptions(cached[1]['events'])}
+        else:
+            result = await load_calendar(year, data['courses'], data['assignments'])
+        if year == data.get('academic_year'):
+            data['calendar_events'] = result['events']
+            data['errors'] = [e for e in data['errors'] if e['source'] not in ('日历', '个人日历', '小组日历')] + result['errors']
+    return JSONResponse(result, headers={'Cache-Control': 'no-store'})
 
 
 async def dashboard(request):
@@ -240,10 +329,12 @@ async def dashboard(request):
         if not state['cache'] or request.query_params.get('refresh') == '1' or time.monotonic() - state['cached_at'] > 300:
             state['cache'] = await load_dashboard()
             state['cached_at'] = time.monotonic()
-    return JSONResponse(state['cache'], headers={'Cache-Control': 'no-store'})
+    return JSONResponse({**state['cache'], 'calendar_events': prepare_descriptions(state['cache']['calendar_events'])},
+        headers={'Cache-Control': 'no-store'})
 
 
 app = Starlette(lifespan=lifespan, routes=[Route('/', index), Route('/api/health', health),
+    Route('/api/calendar', calendar_feed),
     Route('/api/tools', tool_list), Route('/api/dashboard', dashboard), Route('/api/call', call_tool, methods=['POST']),
     Mount('/static', app=StaticFiles(directory=ROOT / 'static'))])
 

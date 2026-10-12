@@ -14,3 +14,13 @@ The runtime dependencies are installed from the lock files and are not distribut
 ## Legacy Canvas adapter
 
 The locally developed narrow adapter under `legacy/canvas-insearch/` is included as source. The dashboard only allows its three read tools; its two assignment mutation tools remain disabled in the dashboard.
+
+## FullCalendar
+
+- Source: https://github.com/fullcalendar/fullcalendar
+- Version: 7.1.1
+- Official distribution: https://cdn.jsdelivr.net/npm/fullcalendar@7.1.1/
+- License: MIT, Copyright (c) 2026 Adam Shaw.
+- Included: standard browser-global bundle, Monarch theme and stylesheets under `static/vendor/fullcalendar/`; license and source mapping are included there.
+- These assets are served locally; the workspace does not load the calendar from a CDN at runtime.
+- Schedule-X is a visual reference only; its code is not included.

@@ -1,20 +1,21 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Student Center · Canvas</title><link rel="stylesheet" href="/static/style.css"></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Student Center · Canvas</title><link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/swiss.css"><link rel="stylesheet" href="/static/vendor/fullcalendar/skeleton.css"><link rel="stylesheet" href="/static/vendor/fullcalendar/theme.css"><link rel="stylesheet" href="/static/vendor/fullcalendar/palette.css"><link rel="stylesheet" href="/static/calendar.css"></head>
 <body>
 <aside class="sidebar">
-  <a class="brand" href="/"><span class="logo">sc<span>·</span></span><span>Student Center<small>YOUR CANVAS, IN FOCUS</small></span></a>
-  <div class="workspace"><span class="avatar">S</span><div>我的学习空间<small>UTS College · 本地实验版</small></div><span class="dot"></span></div>
+  <a class="brand" href="/" aria-label="Student Center 首页"><span class="brand-name">Student<br> Center<span class="brand-dot" aria-hidden="true"></span></span></a>
+  <div class="workspace"><div>我的学习空间<small>Canvas / Student workspace</small></div></div>
   <p class="navlabel">学习中心</p>
-  <nav id="nav"><button class="active" data-view="overview"><span>◉</span> 学习总览</button><button data-view="courses"><span>▦</span> 我的课程</button><button data-view="assignments"><span>◷</span> 作业与 DDL</button><button data-view="updates"><span>≋</span> 学生服务</button><button data-view="tools"><span>⌘</span> 工具工作台 <b id="toolBadge">—</b></button></nav>
-  <div class="sidebottom"><span class="pill">EXPERIMENT 01</span><p>把课程安排，放在一起。</p><small>Canvas 只读 · 本机运行</small><a href="https://insearch.instructure.com/" target="_blank" rel="noopener">打开 Canvas ↗</a></div>
+  <nav id="nav" aria-label="学习中心"><button class="active" data-view="overview" aria-current="page"><span class="nav-icon" data-cursor-label="日历" aria-hidden="true">◉</span><span class="nav-title" data-mobile="日历">学习日历</span></button><button data-view="courses"><span class="nav-icon" data-cursor-label="课程" aria-hidden="true">▦</span><span class="nav-title" data-mobile="课程">我的课程</span></button><button data-view="assignments"><span class="nav-icon" data-cursor-label="DDL" aria-hidden="true">◷</span><span class="nav-title" data-mobile="DDL">作业与 DDL</span></button><button data-view="updates"><span class="nav-icon" data-cursor-label="服务" aria-hidden="true">≋</span><span class="nav-title" data-mobile="服务">学生服务</span></button><button data-view="about"><span class="nav-icon" data-cursor-label="说明" aria-hidden="true">ⓘ</span><span class="nav-title" data-mobile="说明">说明</span></button></nav>
+  <section id="miniCalendar" class="mini-calendar" aria-label="快速选择日期" hidden></section>
+  <div class="sidebottom"><a href="https://insearch.instructure.com/" target="_blank" rel="noopener">打开 Canvas ↗</a></div>
 </aside>
 <main>
-  <header><div class="breadcrumb">我的空间 <span>/</span> <b id="crumb">学习总览</b></div><div class="header-actions"><span id="connection" class="connection">正在连接 Canvas…</span><select id="timezone" aria-label="显示时区"><option value="Asia/Shanghai">中国时间 UTC+8</option><option value="Australia/Sydney">悉尼时间</option><option value="UTC">UTC</option></select><button id="refresh" class="button">↻ 刷新</button></div></header>
-  <section class="pagehead"><div><p class="eyebrow" id="eyebrow">YOUR STUDY, AT A GLANCE</p><h1 id="pageTitle">让今天的学习，更有条理。</h1><p id="subtitle">课程、截止时间和待办，集中在一个地方。</p></div><div class="today" id="today"></div></section>
+  <header><div class="breadcrumb">我的空间 <span>/</span> <b id="crumb">学习日历</b></div><div class="header-actions"><span id="connection" class="connection" role="status">等待连接 Canvas</span><select id="timezone" aria-label="显示时区"><option value="Asia/Shanghai">中国时间 UTC+8</option><option value="Australia/Sydney">悉尼时间</option><option value="UTC">UTC</option></select><button id="refresh" class="button" disabled><span data-cursor-label="刷新" aria-hidden="true">↻</span> 刷新</button></div></header>
+  <section class="pagehead"><div><p class="eyebrow" id="eyebrow">YOUR STUDY CALENDAR</p><h1 id="pageTitle">学习日历</h1><p id="subtitle">学年、月份与每周安排，随时切换。</p></div><div class="today" id="today"></div></section>
   <div id="notice" role="status" hidden></div>
-  <section id="content" aria-live="polite"><div class="loading"><span class="spinner"></span><h3>正在读取你的学习空间</h3><p>首次同步需要读取各课程的作业与提交记录。</p></div></section>
-  <footer><span id="sync">等待首次同步</span><span>Student Center · 本地先验性实验</span></footer>
+  <section id="content" aria-live="polite"><div class="empty">正在准备学习工作台…</div></section>
+  <footer><span id="sync">等待首次同步</span><span>Student Center · Canvas</span></footer>
 </main>
-<dialog id="detail"><button class="close" id="closeDetail" aria-label="关闭详情">×</button><div id="detailBody"></div></dialog>
-<script>window.SC_SESSION=__SESSION__;</script><script src="/static/app.js"></script>
+<dialog id="detail" aria-labelledby="detailTitle"><button class="close" id="closeDetail" data-cursor-label="关闭" aria-label="关闭详情">×</button><div id="detailBody"></div></dialog>
+<script>window.SC_SESSION=__SESSION__;</script><script src="/static/vendor/fullcalendar/fullcalendar.js"></script><script src="/static/vendor/fullcalendar/monarch.js"></script><script src="/static/workspace.js"></script><script src="/static/app.js"></script><script src="/static/calendar-ui.js"></script><script src="/static/services-ui.js"></script><script src="/static/cursor.js"></script>
 </body></html>

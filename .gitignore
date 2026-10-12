@@ -21,3 +21,17 @@ verification.json
 local-data/
 *.sqlite*
 .DS_Store
+# Local design/verification artifacts and account-derived translations
+docs/superpowers/
+design-previews/
+backups/
+screenshots/
+StudentCenter/
+translations.zh-CN.json
+translation-pending.json
+*-private.json
+calendar-api-verification.json
+calendar-responsive.json
+calendar-home.png
+calendar-detail.png
+calendar-mobile.png

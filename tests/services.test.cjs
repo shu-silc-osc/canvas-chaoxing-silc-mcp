@@ -1,0 +1,21 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const vm=require('node:vm');
+const fs=require('node:fs');
+const SCWorkspace=require('../static/workspace.js');
+test('service click runs immediately and filter changes discard stale results',async()=>{
+  const nodes=new Map(),listeners={},calls=[];
+  const node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',scrollIntoView(){},classList:{toggle(){}}});return nodes.get(id)};
+  const model={view:'updates',serviceRequest:0,data:{courses:[{id:7,code:'Math'}]},tools:[{provider:'upstream',name:'list_my_groups',enabled:true,inputSchema:{properties:{course_identifier:{}}}}]};
+  const context={console,Date,JSON,SCWorkspace,model,services:[['list_my_groups','◎','我的小组','']],$:node,esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),notice(){},document:{addEventListener(type,fn){listeners[type]=fn}},api(path,options){return new Promise(resolve=>calls.push({path,body:JSON.parse(options.body),resolve}))}};
+  vm.createContext(context);vm.runInContext(fs.readFileSync('static/services-ui.js','utf8'),context);
+  vm.runInContext("openService('list_my_groups')",context);
+  assert.equal(calls.length,1);assert.equal(calls[0].body.name,'list_my_groups');
+  assert.deepEqual(calls[0].body.arguments,{});
+  listeners.change({target:{id:'serviceCourse',value:'7'}});
+  assert.equal(calls[1].body.arguments.course_identifier,7);
+  calls[1].resolve({text:'New course results'});await new Promise(r=>setImmediate(r));
+  calls[0].resolve({text:'Old all-course results'});await new Promise(r=>setImmediate(r));
+  assert.match(node('#serviceResults').innerHTML,/New course results/);
+  assert.doesNotMatch(node('#serviceResults').innerHTML,/Old all-course/);
+});
