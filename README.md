@@ -4,6 +4,50 @@
 
 本地学生课程助手的先验性实验。当前版本实现 **Canvas**；**超星 / Chaoxing 尚未接入**，仓库名称不代表已有超星功能。
 
+## 工作台操作预览
+
+前端 UI 与工作台后端均包含在仓库中：页面、样式、情境光标及日历组件位于 [`static/`](static/)，本地服务入口为 [`app.py`](app.py)。以下图片由当前前端使用虚构课程、作业和公告渲染，不包含真实账号数据。
+
+**学习日历**：连接后进入首页，通过「学年 / 月 / 周」切换视图，勾选课程筛选事件，也可点击侧栏日期快速跳转。
+
+![学习日历：视图切换、课程筛选与侧栏快速日期跳转](docs/images/workspace-calendar.png)
+
+<details>
+<summary>连接入口：点击「连接 Canvas · 开始同步」</summary>
+
+先按下方「本地运行」配置环境和自己的 Canvas Token，再点击按钮读取课程、作业和日历。
+
+![连接入口：开始同步学习空间](docs/images/workspace-launch.png)
+
+</details>
+
+<details>
+<summary>事件详情：点击日历事件查看中文介绍</summary>
+
+弹窗展示中文介绍、日期和原文入口，可继续查看作业提交状态或打开 Canvas。
+
+![事件详情：中文介绍与作业入口](docs/images/workspace-detail.png)
+
+</details>
+
+<details>
+<summary>作业与 DDL：搜索、筛选和关注</summary>
+
+按课程、截止日期和提交状态筛选，点击作业查看详情，点击星标加入关注。
+
+![作业与 DDL：搜索框、筛选器和提交状态](docs/images/workspace-assignments.png)
+
+</details>
+
+<details>
+<summary>学生服务：点击查询，通过选择器调整范围</summary>
+
+点击公告、动态、成绩或小组等服务直接查询；课程和时间范围通过选择器调整，结果显示在下方。
+
+![学生服务：服务入口、课程选择器与公告查询结果](docs/images/workspace-services.png)
+
+</details>
+
 ## 当前功能
 
 - 点击连接 Canvas 后读取课程、作业、提交状态和日历，准备后续查询参数。
@@ -56,7 +100,7 @@ python -m pip install uv
 ## 发布内容与签名
 
 - 上传源码、静态页面、工具目录、依赖锁文件、安装脚本和许可证。
-- 不上传 Canvas API Key、Cookie、GPG 私钥、真实课程/成绩数据、运行日志、截图或虚拟环境。
+- 不上传 Canvas API Key、Cookie、GPG 私钥、真实课程/成绩数据、运行日志、真实账号截图或虚拟环境；README 预览图仅使用虚构演示数据。
 - GPG 公钥及指纹见 [`docs/SIGNING.md`](docs/SIGNING.md)；初始提交和版本标签使用 GPG 签名。
 - 收藏与计划依赖浏览器本地存储；课程与日历数据在服务进程内缓存约 5 分钟。
 - 事件介绍译文按源文本哈希匹配，译文及待翻译队列保存在用户目录的 `StudentCenter` 文件夹，不随源码发布。`baoyu-translate` 为翻译工作流，当前没有常驻翻译模型；新内容或修改后的介绍标为待翻译，并保留完整原文。
