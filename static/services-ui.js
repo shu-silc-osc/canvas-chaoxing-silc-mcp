@@ -14,6 +14,10 @@ function openService(name,course='all'){
   model.service={name,course:String(course),days:14,type:'all'};
   const pane=$('#serviceWorkspace');
   pane.innerHTML=`<div class="panelhead"><h2>${esc(title)}</h2><button class="textbutton" id="closeService">收起 ×</button></div><div class="service-filters">${hasCourse?`<label>课程<select id="serviceCourse" aria-label="服务课程">${name==='get_my_assignment_scores'?'':'<option value="all">全部课程</option>'}${model.data.courses.map(c=>`<option value="${c.id}" ${String(course)===String(c.id)?'selected':''}>${esc(c.code||c.name)}</option>`).join('')}</select></label>`:''}${'days'in props||name==='list_my_announcements'?`<label>时间范围<select id="serviceDays" aria-label="服务时间范围"><option value="7">7 天</option><option value="14" selected>14 天</option><option value="30">30 天</option></select></label>`:''}${'item_type'in props?'<label>动态类型<select id="serviceType" aria-label="动态类型"><option value="all">全部动态</option><option value="announcements">公告</option><option value="discussions">讨论</option><option value="submissions">提交</option><option value="notifications">通知</option><option value="conversations">消息</option></select></label>':''}<button class="button" id="retryService">重新查询</button></div><div id="serviceResults" role="status"></div>`;
+  if(name==='get_my_course_grades'){
+    pane.insertAdjacentHTML('beforeend','<div id="gradeCalculatorHost"></div>');
+    if(typeof mountGradeCalculator==='function')mountGradeCalculator();
+  }
   pane.scrollIntoView({behavior:'auto',block:'start'});runService();
 }
 async function runService(){

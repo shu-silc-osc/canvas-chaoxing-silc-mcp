@@ -41,6 +41,8 @@ from starlette.staticfiles import StaticFiles
 from canvas_mcp.server import create_server, register_all_tools
 from canvas_mcp.core.tool_policy import apply_tool_policy, resolve_tool_policy, TOOL_EFFECTS, Effect
 from canvas_mcp.core.client import fetch_all_paginated_results, make_canvas_request, cleanup_http_client
+from canvas_mcp.tools.student_grades import COURSE_INCLUDES
+from grade_calculator import calculate as calculate_grade, load_course as load_grade_course
 
 SESSION = secrets.token_hex(32)
 state = {'clients': {}, 'tools': [], 'cache': None, 'cached_at': 0, 'last_error': None, 'calendar': {}, 'contexts': None}
@@ -333,7 +335,38 @@ async def dashboard(request):
         headers={'Cache-Control': 'no-store'})
 
 
+async def grade_calculator(request):
+    denied = await guard(request)
+    if denied: return denied
+    if not state['cache']:
+        return JSONResponse({'error': '请先连接 Canvas。'}, status_code=409)
+    if len(await request.body()) > 100000:
+        return JSONResponse({'error': '参数过大。'}, status_code=413)
+    try:
+        body = await request.json()
+        if not isinstance(body, dict): raise ValueError('参数必须是对象。')
+        course_id = body.get('course_id')
+        if isinstance(course_id, bool) or not isinstance(course_id, (str, int)) or str(course_id) not in {str(c['id']) for c in state['cache']['courses']}:
+            raise ValueError('请选择已连接的课程。')
+    except (ValueError, json.JSONDecodeError) as exc:
+        return JSONResponse({'error': str(exc)}, status_code=400)
+    try:
+        async with asyncio.timeout(60):
+            data = await load_grade_course(course_id, COURSE_INCLUDES)
+        if isinstance(data, str):
+            return JSONResponse({'error': '课程成绩数据不可用：请检查 Canvas 权限、数值成绩可见性或评分数据完整性。'}, status_code=422)
+    except Exception:
+        return JSONResponse({'error': '成绩读取未完成，请稍后重新查询。'}, status_code=502)
+    try:
+        return JSONResponse(calculate_grade(data, body), headers={'Cache-Control': 'no-store'})
+    except ValueError as exc:
+        return JSONResponse({'error': str(exc)}, status_code=400)
+    except Exception:
+        return JSONResponse({'error': '评分数据暂不能计算，请重新读取后重试。'}, status_code=502)
+
+
 app = Starlette(lifespan=lifespan, routes=[Route('/', index), Route('/api/health', health),
+    Route('/api/grade-calculator', grade_calculator, methods=['POST']),
     Route('/api/calendar', calendar_feed),
     Route('/api/tools', tool_list), Route('/api/dashboard', dashboard), Route('/api/call', call_tool, methods=['POST']),
     Mount('/static', app=StaticFiles(directory=ROOT / 'static'))])
